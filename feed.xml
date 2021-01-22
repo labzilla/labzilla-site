@@ -1,0 +1,914 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="https://labzilla.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://labzilla.io/" rel="alternate" type="text/html" /><updated>2021-01-22T00:22:19-06:00</updated><id>https://labzilla.io/feed.xml</id><title type="html">LabZilla</title><subtitle>Labzilla
+</subtitle><author><name>LabZilla</name></author><entry><title type="html">macOS Jumpcloud LDAP Configuration</title><link href="https://labzilla.io/blog/jumpcloud-ldap-bind" rel="alternate" type="text/html" title="macOS Jumpcloud LDAP Configuration" /><published>2021-01-21T00:00:00-06:00</published><updated>2021-01-21T00:00:00-06:00</updated><id>https://labzilla.io/blog/jumpcloud-ldap-bind</id><content type="html" xml:base="https://labzilla.io/blog/jumpcloud-ldap-bind">&lt;p&gt;I’ve been toying with the idea of setting up a directory server to handle authentication across my entire network. However, setting up a LDAP or Active Directory server comes with it’s own challenges around ensuring availablility, backups, etc. I have a somewhat complex network - three different sites, and multiple off-site users connecting via VPN - and the directory server would need to be available 24x7x365. I don’t really want to deal with the hassle, so I’m testing out a “directory-as-a-service provider” called &lt;a href=&quot;https://jumpcloud.com&quot;&gt;Jumpcloud&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Jumpcloud is free for up to 10 users, and offers a cloud LDAP service that is completely hands-off. They even have a desktop agent that allows Jumpcloud to manage local user accounts - seamlessly syncing them up to Jumpcloud’s directory.&lt;/p&gt;
+
+&lt;p&gt;However, macOS supports LDAP natively, so I was curious if it was possible to skip using Jumpcloud’s agent and configure macOS to authenticate directly to Jumpcloud’s LDAP servers.&lt;/p&gt;
+
+&lt;p class=&quot;error&quot;&gt;This is not a supported configuration, only a proof of concept. Use the Jumpcloud agent in any production environment.&lt;/p&gt;
+
+&lt;h1 id=&quot;create-your-account-in-jumpcloud&quot;&gt;Create your account in Jumpcloud&lt;/h1&gt;
+
+&lt;p&gt;Sign up for Jumpcloud, and &lt;a href=&quot;https://support.jumpcloud.com/support/s/article/using-jumpclouds-ldap-as-a-service1&quot;&gt;create an account in your Jumpcloud directory&lt;/a&gt;. Make sure that under permission settings, &lt;em&gt;Enable as LDAP Bind DN&lt;/em&gt; is selected.&lt;/p&gt;
+
+&lt;p&gt;Find your Organization ID under the Settings tab, and copy it down for later use.&lt;/p&gt;
+
+&lt;h1 id=&quot;configure-macos-ldap-settings&quot;&gt;Configure macOS LDAP settings&lt;/h1&gt;
+
+&lt;p&gt;Open up System Preferences, and click Users and Groups. Unlock the preferences pane, and then click on Login Options.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/systempreferences-loginoptions.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Click on the “Join” button next to Network Account Server. Click on the Open Directory Utility button in the bottom left.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/opendirectoryutility.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;In the Directory Utility window, unlock the preferences pane. Select LDAPv3, and then click on the pencil icon in the bottom left.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/ldapv3.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Click on New, and enter &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ldap.jumpcloud.com&lt;/code&gt; for the server name. Check the SSL box, and then click Manual. Click Edit.&lt;/p&gt;
+
+&lt;p&gt;Under the Search &amp;amp; Mappings tab, choose RFC2307 from the dropdown at the top of the window (note that this will change to custom after we make changes). Enter in the following for search base suffix:&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ou=Users,o=YOUR_ORG_ID,dc=jumpcloud,dc=com&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Note: Replace &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;YOUR_ORG_ID&lt;/code&gt; with your organization ID, &lt;a href=&quot;https://support.jumpcloud.com/support/s/article/Admin-Portal-General-Settings&quot;&gt;which you can find in the Jumpcloud admin portal&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/searchbasesuffix.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Under Record Types and Attributes, select “Users” and click + button on the left hand side.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/usersrecordtypes.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Select &lt;em&gt;GeneratedUID&lt;/em&gt; and click OK.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/usersrecord-generateduid.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Ensure that GeneratedUID is selected in the left-side list, and then click on the plus icon on the right side. Enter &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;apple-generateduid&lt;/code&gt; in the text box, and then press enter.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/users-generateduid-2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;In the list on the left-hand side, select the NFSHomeDirectory attribute. Modify the value for this attribute to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;#/Users/$uid$&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/users-nfshomedirectory.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Switch to the Security tab, and check the “Use Authentication When Connecting” box. Under Distinguished Name, enter &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;uid=username,ou=Users,o=YOUR_ORG_ID,dc=jumpcloud,dc=com&lt;/code&gt;. Enter the account password, and click OK. Click OK again.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/securitytab.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Back in the Directory Utility window, click on Search Policy, and then click the plus icon in the bottom left. Select the Jumpcloud LDAP server, and then click Add. Click Apply, and then authenticate with your local system account to save the settings.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/jumpcloud-ldap-bind/searchpolicy2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;You should now be able to log in using a Jumpcloud LDAP account.&lt;/p&gt;
+
+&lt;h1 id=&quot;caveats&quot;&gt;Caveats&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;LDAP accounts are not administrator accounts. You will need to manually grant yourself administrator rights after logging in.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;If you don’t have a network connection (that can reach Jumpcloud’s LDAP servers), you won’t be able to log in to your Mac. You can &lt;a href=&quot;https://support.apple.com/guide/mac-help/create-and-configure-mobile-accounts-mh32157/mac&quot;&gt;manually create a mobile account&lt;/a&gt; to allow you to authenticate off network.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>LabZilla</name></author><category term="mac" /><category term="jumpcloud" /><category term="ldap" /><summary type="html">I’ve been toying with the idea of setting up a directory server to handle authentication across my entire network. However, setting up a LDAP or Active Directory server comes with it’s own challenges around ensuring availablility, backups, etc. I have a somewhat complex network - three different sites, and multiple off-site users connecting via VPN - and the directory server would need to be available 24x7x365. I don’t really want to deal with the hassle, so I’m testing out a “directory-as-a-service provider” called Jumpcloud. Jumpcloud is free for up to 10 users, and offers a cloud LDAP service that is completely hands-off. They even have a desktop agent that allows Jumpcloud to manage local user accounts - seamlessly syncing them up to Jumpcloud’s directory. However, macOS supports LDAP natively, so I was curious if it was possible to skip using Jumpcloud’s agent and configure macOS to authenticate directly to Jumpcloud’s LDAP servers. This is not a supported configuration, only a proof of concept. Use the Jumpcloud agent in any production environment. Create your account in Jumpcloud Sign up for Jumpcloud, and create an account in your Jumpcloud directory. Make sure that under permission settings, Enable as LDAP Bind DN is selected. Find your Organization ID under the Settings tab, and copy it down for later use. Configure macOS LDAP settings Open up System Preferences, and click Users and Groups. Unlock the preferences pane, and then click on Login Options. Click on the “Join” button next to Network Account Server. Click on the Open Directory Utility button in the bottom left. In the Directory Utility window, unlock the preferences pane. Select LDAPv3, and then click on the pencil icon in the bottom left. Click on New, and enter ldap.jumpcloud.com for the server name. Check the SSL box, and then click Manual. Click Edit. Under the Search &amp;amp; Mappings tab, choose RFC2307 from the dropdown at the top of the window (note that this will change to custom after we make changes). Enter in the following for search base suffix:ou=Users,o=YOUR_ORG_ID,dc=jumpcloud,dc=com Note: Replace YOUR_ORG_ID with your organization ID, which you can find in the Jumpcloud admin portal. Under Record Types and Attributes, select “Users” and click + button on the left hand side. Select GeneratedUID and click OK. Ensure that GeneratedUID is selected in the left-side list, and then click on the plus icon on the right side. Enter apple-generateduid in the text box, and then press enter. In the list on the left-hand side, select the NFSHomeDirectory attribute. Modify the value for this attribute to #/Users/$uid$ Switch to the Security tab, and check the “Use Authentication When Connecting” box. Under Distinguished Name, enter uid=username,ou=Users,o=YOUR_ORG_ID,dc=jumpcloud,dc=com. Enter the account password, and click OK. Click OK again. Back in the Directory Utility window, click on Search Policy, and then click the plus icon in the bottom left. Select the Jumpcloud LDAP server, and then click Add. Click Apply, and then authenticate with your local system account to save the settings. You should now be able to log in using a Jumpcloud LDAP account. Caveats LDAP accounts are not administrator accounts. You will need to manually grant yourself administrator rights after logging in. If you don’t have a network connection (that can reach Jumpcloud’s LDAP servers), you won’t be able to log in to your Mac. You can manually create a mobile account to allow you to authenticate off network.</summary></entry><entry><title type="html">2019 MacBook Pro + Radeon 5500m Issues</title><link href="https://labzilla.io/blog/2019-macbook-pro-gpu-issues" rel="alternate" type="text/html" title="2019 MacBook Pro + Radeon 5500m Issues" /><published>2020-12-11T00:00:00-06:00</published><updated>2020-12-11T00:00:00-06:00</updated><id>https://labzilla.io/blog/2019-macbook-pro-gpu-issues</id><content type="html" xml:base="https://labzilla.io/blog/2019-macbook-pro-gpu-issues">&lt;p&gt;This post is to document a handful of issues I’ve experienced with my 2019 MacBook Pro surrounding the GPU.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;System Specs&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Mac&lt;/strong&gt;: 2019 16” MacBook Pro&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;GPU&lt;/strong&gt;: AMD Radeon Pro 5500M&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Monitors&lt;/strong&gt;: Dell U2718Q 27” 4K (x2)&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Dock&lt;/strong&gt;: CalDigit TS3 Plus&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Symptoms&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Laptop runs hot and fans kick on.
+    &lt;ul&gt;
+      &lt;li&gt;Eventually, the GPU may fail.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;iStat Menus shows “Radeon High Side” power draw at ~19 watts.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Forum Threads&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Massive MacRumors &lt;a href=&quot;https://forums.macrumors.com/threads/16-is-hot-noisy-with-an-external-monitor.2211747/&quot;&gt;thread&lt;/a&gt; is the main thread on this issue.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Solution&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;This appears to be caused by buggy drivers. After restart, identical monitors will connect at different refresh rates (30hz and 60hz). Use a tool like SwitchResX or &lt;a href=&quot;https://github.com/avibrazil/RDM&quot;&gt;RDM&lt;/a&gt; to force the monitors back to 60hz. Radeon High Side power draw should drop back down to 7-8 watts.&lt;/p&gt;</content><author><name>LabZilla</name></author><category term="mac" /><category term="bugs" /><summary type="html">This post is to document a handful of issues I’ve experienced with my 2019 MacBook Pro surrounding the GPU. System Specs Mac: 2019 16” MacBook Pro GPU: AMD Radeon Pro 5500M Monitors: Dell U2718Q 27” 4K (x2) Dock: CalDigit TS3 Plus Symptoms Laptop runs hot and fans kick on. Eventually, the GPU may fail. iStat Menus shows “Radeon High Side” power draw at ~19 watts. Forum Threads Massive MacRumors thread is the main thread on this issue. Solution This appears to be caused by buggy drivers. After restart, identical monitors will connect at different refresh rates (30hz and 60hz). Use a tool like SwitchResX or RDM to force the monitors back to 60hz. Radeon High Side power draw should drop back down to 7-8 watts.</summary></entry><entry><title type="html">Your Smart TV is probably ignoring your PiHole</title><link href="https://labzilla.io/blog/force-dns-pihole" rel="alternate" type="text/html" title="Your Smart TV is probably ignoring your PiHole" /><published>2020-11-09T00:00:00-06:00</published><updated>2020-11-09T00:00:00-06:00</updated><id>https://labzilla.io/blog/force-dns-pihole</id><content type="html" xml:base="https://labzilla.io/blog/force-dns-pihole">&lt;p class=&quot;warning&quot;&gt;&lt;span style=&quot;color: #F48120;&quot;&gt;&lt;i class=&quot;fab fa-hacker-news&quot;&gt;&lt;/i&gt;&lt;/span&gt; &lt;strong&gt;Welcome Hacker News readers!&lt;/strong&gt;&lt;br /&gt;
+&lt;strong&gt;•&lt;/strong&gt; Thank you to &lt;a href=&quot;https://homepage.cs.uiowa.edu/~mmazhar/&quot;&gt;M. Hammad Mazhar&lt;/a&gt; for his &lt;a href=&quot;https://arxiv.org/pdf/2001.08288.pdf&quot;&gt;research&lt;/a&gt; that inspired this guide.&lt;br /&gt;
+&lt;strong&gt;•&lt;/strong&gt; &lt;a href=&quot;https://twitter.com/healeyio&quot;&gt;@healyio&lt;/a&gt; made some great additional suggestions in this Twitter &lt;a href=&quot;https://twitter.com/healeyio/status/1335347122649006080&quot;&gt;thread&lt;/a&gt; which I incoporated in the DNS over TLS/HTTPS &lt;a href=&quot;#dns-over-tlshttps&quot;&gt;section&lt;/a&gt;.&lt;br /&gt;
+&lt;strong&gt;•&lt;/strong&gt; The HN &lt;a href=&quot;https://news.ycombinator.com/item?id=25313480&quot;&gt;comment thread&lt;/a&gt; is full of insightful comments from individuals who work on IoT hardware and other embedded devices, and is well worth a read.&lt;br /&gt;
+&lt;strong&gt;•&lt;/strong&gt; Finally, you can subscribe to the &lt;a href=&quot;/feed.xml&quot;&gt;RSS feed&lt;/a&gt; or follow on &lt;a href=&quot;https://twitter.com/labzilla&quot;&gt;Twitter&lt;/a&gt; for updates.&lt;/p&gt;
+
+&lt;p&gt;If you’re using PiHole on your network to block ads and prevent your various smart devices from sending tracking information to their manufacturers, &lt;strong&gt;you might be surprised to find out that some of these devices are using a sneaky tactic to bypass your PiHole entirely.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Smart devices manufacturers often “hard-code” in a public DNS server, like Google’s 8.8.8.8, and their devices ignore whatever DNS server is assigned by your router - such as your PiHole.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://arxiv.org/pdf/2001.08288.pdf&quot;&gt;Nearly 70% of smart TVs and 46% of game consoles&lt;/a&gt; were found to contain hardcoded DNS settings - allowing them to simply ignore your local network’s DNS server entirely. On average, Smart TVs generate an average of 60 megabytes of outgoing Internet traffic &lt;em&gt;per day&lt;/em&gt;, all the while bypassing tools like PiHole.&lt;/p&gt;
+
+&lt;h2 id=&quot;force-all-dns-queries-through-pihole&quot;&gt;Force all DNS queries through PiHole&lt;/h2&gt;
+
+&lt;p&gt;Fortunately, with a few simple firewall rules, you can intercept these hardcoded DNS queries and redirect them to your PiHole.  These instructions are for pfSense, however you should be able to adapt them for Sophos XG, Ubiquiti EdgeRouter, etc.&lt;/p&gt;
+
+&lt;h3 id=&quot;create-nat-rules&quot;&gt;Create NAT Rules&lt;/h3&gt;
+
+&lt;p&gt;Log in to your pfSense admin interface, and navigate to &lt;em&gt;Firewall&lt;/em&gt; &amp;gt; &lt;em&gt;NAT&lt;/em&gt; &amp;gt; &lt;em&gt;Port Forward&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;We’re going to create two Port Forward NAT rules - one to redirect any DNS queries originating from devices on the LAN to PiHole, and another to allow PiHole to commmunicate with external DNS servers. We will also create an additional outbound NAT rule that will make this process invisible to any clients on the network with hardcoded DNS.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;NAT Rule 1: Redirect DNS queries to PiHole&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Click the &lt;em&gt;Add&lt;/em&gt; button to create your first new NAT Port Forward rule.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Interface:&lt;/strong&gt; LAN&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Protcol:&lt;/strong&gt; TCP/UDP&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; LAN net (you may need to click the blue show advanced button to see this option)&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination - Invert match:&lt;/strong&gt; Checked&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination - Type:&lt;/strong&gt; Single host or alias&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination - Address/mask:&lt;/strong&gt; Your PiHole’s IP address&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination Port Range - From:&lt;/strong&gt; DNS&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination Port Range - To:&lt;/strong&gt; DNS&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Redirect Target IP:&lt;/strong&gt; Your PiHole’s IP address&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Redirect Target Port:&lt;/strong&gt; DNS&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Description:&lt;/strong&gt; Intercept any outgoing DNS queries and redirect them to PiHole.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;NAT Rule 2: Exempt PiHole from DNS query redirects&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Click the &lt;em&gt;Add&lt;/em&gt; button to create your second new NAT Port Forward rule.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;No RDR (NOT):&lt;/strong&gt; Checked&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Interface:&lt;/strong&gt; LAN&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Protcol:&lt;/strong&gt; TCP/UDP&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Source - Type:&lt;/strong&gt; Single host or alias&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Source - Address/Mask:&lt;/strong&gt; Your PiHole’s IP address&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination:&lt;/strong&gt; Any&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination Port Range - From:&lt;/strong&gt; DNS&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination Port Range - From:&lt;/strong&gt; DNS&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Description:&lt;/strong&gt; Allow PiHole to reach external DNS servers&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p class=&quot;warning&quot;&gt;&lt;strong&gt;Note:&lt;/strong&gt; pfSense (and most other firewalls) process rules from top to bottom. Make sure you drag the second rule exempting PiHole from DNS query redirects &lt;em&gt;above&lt;/em&gt; the first rule we created - otherwise PiHole will not be able to contact external DNS servers.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;NAT Rule 3: Prevent clients from giving unexpected source errors&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Finally, we need to create an outbound NAT rule. Navigate to &lt;em&gt;Firewall&lt;/em&gt; &amp;gt; &lt;em&gt;NAT&lt;/em&gt; &amp;gt; &lt;em&gt;Outbound&lt;/em&gt;.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Interface:&lt;/strong&gt; LAN&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Address Family:&lt;/strong&gt; IPv4+IPv6&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Protocol:&lt;/strong&gt; any&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Source - Type:&lt;/strong&gt; Network&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Source - Network for the outbound NAT mapping:&lt;/strong&gt; Your internal LAN network&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination - Type:&lt;/strong&gt; Network&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination - Network for the outbound NAT Mappings:&lt;/strong&gt; Your PiHole’s IP Address&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination Port Range:&lt;/strong&gt; 53&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Translation:&lt;/strong&gt; Interface Address&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Description:&lt;/strong&gt; Prevents hardcoded DNS clients from giving unexpected source error after DNS redirected to PiHole.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;test-it-out&quot;&gt;Test it out&lt;/h3&gt;
+
+&lt;p&gt;You can easily test to make sure your DNS redirection is working properly.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Create a new, temporary internal DNS entry on your network (“piholetest.example.com”), and point it to 10.0.1.1. You can do this right from PiHole under &lt;em&gt;Local DNS Records&lt;/em&gt;.&lt;/li&gt;
+  &lt;li&gt;Manually set your computer’s DNS server to &lt;em&gt;1.1.1.1&lt;/em&gt;.&lt;/li&gt;
+  &lt;li&gt;Open a terminal window (or command promt on Windows), and run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nslookup piholetest.example.com&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;If you set this up correctly, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nslookup&lt;/code&gt; should return 10.0.1.1. Your computer &lt;em&gt;thinks&lt;/em&gt; it’s receiving DNS records from 1.1.1.1, while in reality they are coming from your PiHole.&lt;/p&gt;
+
+    &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; macbookpro:~ labzilla$ nslookup piholetest.example.com
+ Server:		1.1.1.1
+ Address:	1.1.1.1#53
+	
+ Name:	piholetest.example.com
+ Address: 10.0.1.1
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;You can further demonstate this by temporarily disabling the first NAT rule we created, and running the same &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nslookup piholetest.example.com&lt;/code&gt; command:&lt;/p&gt;
+
+    &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; macbookpro:~ labzilla$ nslookup piholetest.example.com
+ Server:		1.1.1.1
+ Address:	1.1.1.1#53
+	
+ ** server can't find piholetest.example.com: NXDOMAIN 
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+
+    &lt;p&gt;As “piholetest.example.com” doesn’t exist on the public Internet, the real 1.1.1.1 server has no record to provide - resulting in your &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nslookup&lt;/code&gt; request returning a NXDOMAIN error.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;strong&gt;Don’t forget to revert your computer’s DNS settings back to their original value, and reenable any firewall rules you temporary disabled while testing.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;dns-over-tlshttps&quot;&gt;DNS over TLS/HTTPS&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://twitter.com/healeyio&quot;&gt;Andrew Healey&lt;/a&gt; &lt;span style=&quot;color: #00acee;&quot;&gt;&lt;i class=&quot;fab fa-twitter&quot;&gt;&lt;/i&gt;&lt;/span&gt; brought up a great point in a tweet responding to this article:&lt;/p&gt;
+
+&lt;blockquote class=&quot;twitter-tweet&quot; data-dnt=&quot;true&quot; data-theme=&quot;light&quot;&gt;&lt;p lang=&quot;en&quot; dir=&quot;ltr&quot;&gt;Saw this article [1] on HN to block hardcoded DNS settings on Smart TVs and IoT devices. They&amp;#39;ll just bypass this with DNS of HTTPS (DoH). If you&amp;#39;re going this far, take 10 minutes and a couple additional steps to do it right. A thread. 🧵1/&lt;br /&gt;&lt;br /&gt;[1] &lt;a href=&quot;https://t.co/TZgQhIZEer&quot;&gt;https://t.co/TZgQhIZEer&lt;/a&gt;&lt;/p&gt;&amp;mdash; Andrew Healey (@healeyio) &lt;a href=&quot;https://twitter.com/healeyio/status/1335347122649006080?ref_src=twsrc%5Etfw&quot;&gt;December 5, 2020&lt;/a&gt;&lt;/blockquote&gt;
+&lt;script async=&quot;&quot; src=&quot;https://platform.twitter.com/widgets.js&quot; charset=&quot;utf-8&quot;&gt;&lt;/script&gt;
+
+&lt;p&gt;He’s right. DNS over HTTPS travels over port 443, and would sail right through these firewall rules (as would DNS overt TLS). Blocking HTTPS/443 is not an option for obvious reasons. Instead, we can mitigate this threat by blocking all outbound traffic to known public DNS servers (except for PiHole).&lt;/p&gt;
+
+&lt;p&gt;This option isn’t perfect - the firewall rule is only as good as the source list behind it.&lt;/p&gt;
+
+&lt;h3 id=&quot;create-ip-list-in-pfsense&quot;&gt;Create IP List in pfSense&lt;/h3&gt;
+
+&lt;p&gt;You can aliases in pfSense that will automatically pull down (and update) a list of IP addresses. &lt;a href=&quot;https://public-dns.info&quot;&gt;Public-DNS.info&lt;/a&gt; maintains a list of publicly accessible DNS servers that we can have pfSense copy for firewall rules.&lt;/p&gt;
+
+&lt;p&gt;From the pfSense dashboard, click &lt;em&gt;Firewall&lt;/em&gt;, then click &lt;em&gt;Aliases&lt;/em&gt;. Click &lt;em&gt;Add&lt;/em&gt; in the bottom right corner. Configure the alias with the following uptions:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Name:&lt;/strong&gt; IP_PublicDNS&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Description:&lt;/strong&gt; Public DNS Server List&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Type:&lt;/strong&gt; URL Table (IPs)&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;URL Table (IPs):&lt;/strong&gt; http://public-dns.info/nameservers-all.txt&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Update Frequency:&lt;/strong&gt; 7 (this is the drop down menu after the “/” in the above field)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;create-firewall-rules-using-ip-list&quot;&gt;Create Firewall Rules using IP List&lt;/h3&gt;
+
+&lt;p&gt;Now that we have our alias list of public DNS servers configured in pfSense, we can make rules to block outgoing traffic (1) destined for IP addresses that are on the list (2) that didn’t come from PiHole.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;I prefer to use firewall rules that are as narrowly tailored as possible, so I’m opting to block &lt;em&gt;only&lt;/em&gt; DNS over HTTPS (port 443) and DNS over TLS (port 853) traffic. You could also just block everything.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Navigate to &lt;em&gt;Firewall&lt;/em&gt; &amp;gt; &lt;em&gt;Rules&lt;/em&gt;, and click the &lt;em&gt;LAN&lt;/em&gt; tab. Click the &lt;em&gt;Add&lt;/em&gt; button in the bottom right to make a new rule.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Action:&lt;/strong&gt; Block&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Interface:&lt;/strong&gt; LAN&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Address Family:&lt;/strong&gt; IPv4+IPv6&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Protocol:&lt;/strong&gt; TCP/UDP&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Source - Invert match:&lt;/strong&gt; Checked&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Source:&lt;/strong&gt; Your PiHole’s internal IP address&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination:&lt;/strong&gt; Single host/alias - IP_PublicDNS (or whatever you called your alias in the previous section).&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Destination Port Range:&lt;/strong&gt; HTTPS&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Log:&lt;/strong&gt; Checked (optional, but helpful for troubleshooting)&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Description:&lt;/strong&gt; Block HTTPS - PublicDNS list&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Save the rule, and then click the &lt;em&gt;Copy&lt;/em&gt; &lt;i class=&quot;far fa-clone&quot;&gt;&lt;/i&gt; icon to duplicate the rule to also block DNS over TLS. Change the following:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Destination Port Range:&lt;/strong&gt; DNS over TLS (from/to)&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Description:&lt;/strong&gt; Block DNS over TLS - PublicDNS list&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Save the rule, and then click &lt;em&gt;Apply Changes&lt;/em&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;test-it-out-1&quot;&gt;Test it out&lt;/h3&gt;
+
+&lt;p&gt;You can test to make sure this rule is working properly by opening a terminal window and running the following command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;telnet 1.1.1.1 443&lt;/code&gt;. The connection should eventually fail:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	macbookpro:~ labzilla$ telnet 1.1.1.1 443
+	Trying 1.1.1.1...
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;If you disable the firewall rule, the connection will succeed:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	macbookpro:~ labzilla$ telnet 1.1.1.1 443
+	Trying 1.1.1.1...
+	Connected to one.one.one.one.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Don’t forget to reenable your firewall rules!&lt;/p&gt;
+
+&lt;h2 id=&quot;hacker-news&quot;&gt;Hacker News&lt;/h2&gt;
+
+&lt;p&gt;This post hit the front page of Hacker News &lt;span style=&quot;color: #F48120;&quot;&gt;&lt;i class=&quot;fab fa-hacker-news&quot;&gt;&lt;/i&gt;&lt;/span&gt; on Saturday December 5th, 2020. Thank you &lt;a href=&quot;https://boramalper.org&quot;&gt;@boramalper&lt;/a&gt; for submitting it, and I hope you found the information useful!&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;If you’re curious about what the Hacker News bump looks like - this blog normally sees about 100 hits per day. Between December 5th-6th, this post had over 70,000 views.&lt;/li&gt;
+  &lt;li&gt;The &lt;a href=&quot;https://news.ycombinator.com/item?id=25313480&quot;&gt;original comment thread&lt;/a&gt; is full of insightful comments from individuals who work on IoT hardware and other embedded devices, and is well worth a read.&lt;/li&gt;
+  &lt;li&gt;I added an additional &lt;a href=&quot;#dns-over-tlshttps&quot;&gt;section&lt;/a&gt; incorporating some of the suggestion that &lt;a href=&quot;https://twitter.com/healeyio&quot;&gt;@healyio&lt;/a&gt; made in this Twitter &lt;a href=&quot;https://twitter.com/healeyio/status/1335347122649006080&quot;&gt;thread&lt;/a&gt; regarding DNS over TLS/HTTPS.&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>LabZilla</name></author><category term="pfsense" /><category term="pihole" /><category term="networking" /><category term="dns" /><summary type="html">Welcome Hacker News readers! • Thank you to M. Hammad Mazhar for his research that inspired this guide. • @healyio made some great additional suggestions in this Twitter thread which I incoporated in the DNS over TLS/HTTPS section. • The HN comment thread is full of insightful comments from individuals who work on IoT hardware and other embedded devices, and is well worth a read. • Finally, you can subscribe to the RSS feed or follow on Twitter for updates. If you’re using PiHole on your network to block ads and prevent your various smart devices from sending tracking information to their manufacturers, you might be surprised to find out that some of these devices are using a sneaky tactic to bypass your PiHole entirely. Smart devices manufacturers often “hard-code” in a public DNS server, like Google’s 8.8.8.8, and their devices ignore whatever DNS server is assigned by your router - such as your PiHole. Nearly 70% of smart TVs and 46% of game consoles were found to contain hardcoded DNS settings - allowing them to simply ignore your local network’s DNS server entirely. On average, Smart TVs generate an average of 60 megabytes of outgoing Internet traffic per day, all the while bypassing tools like PiHole. Force all DNS queries through PiHole Fortunately, with a few simple firewall rules, you can intercept these hardcoded DNS queries and redirect them to your PiHole. These instructions are for pfSense, however you should be able to adapt them for Sophos XG, Ubiquiti EdgeRouter, etc. Create NAT Rules Log in to your pfSense admin interface, and navigate to Firewall &amp;gt; NAT &amp;gt; Port Forward. We’re going to create two Port Forward NAT rules - one to redirect any DNS queries originating from devices on the LAN to PiHole, and another to allow PiHole to commmunicate with external DNS servers. We will also create an additional outbound NAT rule that will make this process invisible to any clients on the network with hardcoded DNS. NAT Rule 1: Redirect DNS queries to PiHole Click the Add button to create your first new NAT Port Forward rule. Interface: LAN Protcol: TCP/UDP Source: LAN net (you may need to click the blue show advanced button to see this option) Destination - Invert match: Checked Destination - Type: Single host or alias Destination - Address/mask: Your PiHole’s IP address Destination Port Range - From: DNS Destination Port Range - To: DNS Redirect Target IP: Your PiHole’s IP address Redirect Target Port: DNS Description: Intercept any outgoing DNS queries and redirect them to PiHole. NAT Rule 2: Exempt PiHole from DNS query redirects Click the Add button to create your second new NAT Port Forward rule. No RDR (NOT): Checked Interface: LAN Protcol: TCP/UDP Source - Type: Single host or alias Source - Address/Mask: Your PiHole’s IP address Destination: Any Destination Port Range - From: DNS Destination Port Range - From: DNS Description: Allow PiHole to reach external DNS servers Note: pfSense (and most other firewalls) process rules from top to bottom. Make sure you drag the second rule exempting PiHole from DNS query redirects above the first rule we created - otherwise PiHole will not be able to contact external DNS servers. NAT Rule 3: Prevent clients from giving unexpected source errors Finally, we need to create an outbound NAT rule. Navigate to Firewall &amp;gt; NAT &amp;gt; Outbound. Interface: LAN Address Family: IPv4+IPv6 Protocol: any Source - Type: Network Source - Network for the outbound NAT mapping: Your internal LAN network Destination - Type: Network Destination - Network for the outbound NAT Mappings: Your PiHole’s IP Address Destination Port Range: 53 Translation: Interface Address Description: Prevents hardcoded DNS clients from giving unexpected source error after DNS redirected to PiHole. Test it out You can easily test to make sure your DNS redirection is working properly. Create a new, temporary internal DNS entry on your network (“piholetest.example.com”), and point it to 10.0.1.1. You can do this right from PiHole under Local DNS Records. Manually set your computer’s DNS server to 1.1.1.1. Open a terminal window (or command promt on Windows), and run nslookup piholetest.example.com If you set this up correctly, nslookup should return 10.0.1.1. Your computer thinks it’s receiving DNS records from 1.1.1.1, while in reality they are coming from your PiHole. macbookpro:~ labzilla$ nslookup piholetest.example.com Server: 1.1.1.1 Address: 1.1.1.1#53 Name: piholetest.example.com Address: 10.0.1.1 You can further demonstate this by temporarily disabling the first NAT rule we created, and running the same nslookup piholetest.example.com command: macbookpro:~ labzilla$ nslookup piholetest.example.com Server: 1.1.1.1 Address: 1.1.1.1#53 ** server can't find piholetest.example.com: NXDOMAIN As “piholetest.example.com” doesn’t exist on the public Internet, the real 1.1.1.1 server has no record to provide - resulting in your nslookup request returning a NXDOMAIN error. Don’t forget to revert your computer’s DNS settings back to their original value, and reenable any firewall rules you temporary disabled while testing. DNS over TLS/HTTPS Andrew Healey brought up a great point in a tweet responding to this article: Saw this article [1] on HN to block hardcoded DNS settings on Smart TVs and IoT devices. They&amp;#39;ll just bypass this with DNS of HTTPS (DoH). If you&amp;#39;re going this far, take 10 minutes and a couple additional steps to do it right. A thread. 🧵1/[1] https://t.co/TZgQhIZEer&amp;mdash; Andrew Healey (@healeyio) December 5, 2020 He’s right. DNS over HTTPS travels over port 443, and would sail right through these firewall rules (as would DNS overt TLS). Blocking HTTPS/443 is not an option for obvious reasons. Instead, we can mitigate this threat by blocking all outbound traffic to known public DNS servers (except for PiHole). This option isn’t perfect - the firewall rule is only as good as the source list behind it. Create IP List in pfSense You can aliases in pfSense that will automatically pull down (and update) a list of IP addresses. Public-DNS.info maintains a list of publicly accessible DNS servers that we can have pfSense copy for firewall rules. From the pfSense dashboard, click Firewall, then click Aliases. Click Add in the bottom right corner. Configure the alias with the following uptions: Name: IP_PublicDNS Description: Public DNS Server List Type: URL Table (IPs) URL Table (IPs): http://public-dns.info/nameservers-all.txt Update Frequency: 7 (this is the drop down menu after the “/” in the above field) Create Firewall Rules using IP List Now that we have our alias list of public DNS servers configured in pfSense, we can make rules to block outgoing traffic (1) destined for IP addresses that are on the list (2) that didn’t come from PiHole. I prefer to use firewall rules that are as narrowly tailored as possible, so I’m opting to block only DNS over HTTPS (port 443) and DNS over TLS (port 853) traffic. You could also just block everything. Navigate to Firewall &amp;gt; Rules, and click the LAN tab. Click the Add button in the bottom right to make a new rule. Action: Block Interface: LAN Address Family: IPv4+IPv6 Protocol: TCP/UDP Source - Invert match: Checked Source: Your PiHole’s internal IP address Destination: Single host/alias - IP_PublicDNS (or whatever you called your alias in the previous section). Destination Port Range: HTTPS Log: Checked (optional, but helpful for troubleshooting) Description: Block HTTPS - PublicDNS list Save the rule, and then click the Copy icon to duplicate the rule to also block DNS over TLS. Change the following: Destination Port Range: DNS over TLS (from/to) Description: Block DNS over TLS - PublicDNS list Save the rule, and then click Apply Changes. Test it out You can test to make sure this rule is working properly by opening a terminal window and running the following command telnet 1.1.1.1 443. The connection should eventually fail: macbookpro:~ labzilla$ telnet 1.1.1.1 443 Trying 1.1.1.1... If you disable the firewall rule, the connection will succeed: macbookpro:~ labzilla$ telnet 1.1.1.1 443 Trying 1.1.1.1... Connected to one.one.one.one. Don’t forget to reenable your firewall rules! Hacker News This post hit the front page of Hacker News on Saturday December 5th, 2020. Thank you @boramalper for submitting it, and I hope you found the information useful! If you’re curious about what the Hacker News bump looks like - this blog normally sees about 100 hits per day. Between December 5th-6th, this post had over 70,000 views. The original comment thread is full of insightful comments from individuals who work on IoT hardware and other embedded devices, and is well worth a read. I added an additional section incorporating some of the suggestion that @healyio made in this Twitter thread regarding DNS over TLS/HTTPS.</summary></entry><entry><title type="html">Secure Home Assistant Remote Access</title><link href="https://labzilla.io/blog/homeassistant-remote-access" rel="alternate" type="text/html" title="Secure Home Assistant Remote Access" /><published>2020-10-13T00:00:00-05:00</published><updated>2020-10-13T00:00:00-05:00</updated><id>https://labzilla.io/blog/homeassistant-remote-access</id><content type="html" xml:base="https://labzilla.io/blog/homeassistant-remote-access">&lt;p&gt;Is your Home Assistant installation properly configured for secure remote access? Are you sure?&lt;/p&gt;
+
+&lt;p&gt;I ran a quick search on Shodan  and found &lt;strong&gt;over 36,000 publically accessible Home Assistant installations with no SSL certificate&lt;/strong&gt; installed. Every time one of these unlucky users logs in to Home Assistant remotely, their credentials are being transmitted in clear text across the public Internet. Any data being sent back and forth to Home Assistant - such as your location - is also being transmitted in clear text.&lt;/p&gt;
+
+&lt;p class=&quot;error&quot;&gt;&lt;a href=&quot;#&quot; class=&quot;button button--primary button--circle&quot;&gt;X&lt;/a&gt;   &lt;strong&gt;Forwarding port 8123 on your router and calling it a day is a bad idea!&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/shodan-homeassistant-map.png&quot; alt=&quot;&quot; class=&quot;shadow&quot; /&gt;
+&lt;em&gt;Each red dot represents a potentially insecure Home Assistant installation&lt;/em&gt;&lt;/p&gt;
+
+&lt;h1 id=&quot;requirements&quot;&gt;Requirements&lt;/h1&gt;
+
+&lt;p&gt;You’ll need the following:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Standard Home Assistant installation&lt;/li&gt;
+  &lt;li&gt;Registered domain name&lt;/li&gt;
+  &lt;li&gt;Free Cloudflare account&lt;/li&gt;
+  &lt;li&gt;Domain nameservers pointed to Cloudflare&lt;/li&gt;
+  &lt;li&gt;Ability to modify your router’s firewall settings&lt;/li&gt;
+  &lt;li&gt;Static internal IP address/DHCP reservation for Home Assistant&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;what-is-cloudflare-and-why-use-them&quot;&gt;What is Cloudflare, and why use them?&lt;/h4&gt;
+
+&lt;p&gt;Cloudflare provides a variety of products that help make websites faster and more secure. In a nutshell, Cloudflare sits between your server and people trying to access your server - transparently blocking bad actors before they reach your website.&lt;/p&gt;
+
+&lt;p&gt;By using Cloudflare, any access to your Home Assistant installation from the public Internet first goes through Cloudflare’s servers - hiding your true public IP address, and letting you use their advanced security tools.&lt;/p&gt;
+
+&lt;h1 id=&quot;cloudflare-configuration&quot;&gt;Cloudflare Configuration&lt;/h1&gt;
+
+&lt;p&gt;For Cloudflare to function, you’ll need to &lt;a href=&quot;https://support.cloudflare.com/hc/en-us/articles/201720164&quot;&gt;create a Cloudflare account&lt;/a&gt;, and then tell your domain registrar to &lt;a href=&quot;https://support.cloudflare.com/hc/en-us/articles/205195708&quot;&gt;use Cloudflare’s nameservers&lt;/a&gt; for your domain.&lt;/p&gt;
+
+&lt;h2 id=&quot;add-your-subdomain&quot;&gt;Add your subdomain&lt;/h2&gt;
+
+&lt;p&gt;You’ll need to come up with a subdomain that you will use to access Home Assistant. For this guide, I’ll use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;homeassistant.labzilla.io&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Log in to the &lt;a href=&quot;https://dash.cloudflare.com&quot;&gt;Cloudflare dashboard&lt;/a&gt;, and click on your site. Click on &lt;em&gt;DNS&lt;/em&gt; in the top menu bar, and then click &lt;em&gt;Add Record&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;Leave &lt;em&gt;Type&lt;/em&gt; (A), &lt;em&gt;TTL&lt;/em&gt; (Auto), and &lt;em&gt;Proxied&lt;/em&gt; &lt;span style=&quot;color: #F48120;&quot;&gt;&lt;i class=&quot;fas fa-cloud&quot;&gt;&lt;/i&gt;&lt;/span&gt; at their default settings. Under &lt;em&gt;Name&lt;/em&gt;, enter the first part of the subdomain only. Under &lt;em&gt;IPv4 address&lt;/em&gt;, enter your network’s public IP address.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;If you aren’t sure what your public IP address is, use &lt;a href=&quot;https://ifconfig.me/ip&quot;&gt;ifconfig.me &lt;/a&gt;or &lt;a href=&quot;https://ipchicken.com&quot;&gt;IP Chicken&lt;/a&gt; to find out.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/cloudflare-dns-settings.png&quot; alt=&quot;&quot; class=&quot;shadow&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Click the blue &lt;em&gt;Save&lt;/em&gt; button.&lt;/p&gt;
+
+&lt;h2 id=&quot;obtain-your-api-key&quot;&gt;Obtain your API Key&lt;/h2&gt;
+
+&lt;p&gt;We will need your Cloudflare Global API key to configure Home Assistant.&lt;/p&gt;
+
+&lt;p&gt;From the Cloudflare dashboard, click on the &lt;em&gt;My Profile&lt;/em&gt; account icon in the top right corner, and then click &lt;em&gt;My Profile&lt;/em&gt;. Click on &lt;em&gt;API Tokens&lt;/em&gt;, and then click the &lt;em&gt;View&lt;/em&gt; button for the Global API Key item. You will be asked to enter your password, and then your Global API Key will be displayed. Save this somewhere secure - it’s equivalent to your password.&lt;/p&gt;
+
+&lt;h1 id=&quot;configure-home-assistant&quot;&gt;Configure Home Assistant&lt;/h1&gt;
+
+&lt;p&gt;Now that Cloudflare is set up, we need to configure Home Assistant to (1) automatically get an SSL certificate, (2) use the SSL certificate for the web interface, (3) periodically check to see if your external IP address changed, (4) and update Cloudflare accordingly.&lt;/p&gt;
+
+&lt;p class=&quot;error&quot;&gt;This tutorial assumes you are using the standard Home Assistant image. If you have have &lt;em&gt;Supervisor&lt;/em&gt; listed on the left hand menu, you’re using the standard image. If you’re using Home Assistant &lt;em&gt;Core&lt;/em&gt;, use &lt;a href=&quot;http://certbot-dns-cloudflare.readthedocs.io&quot;&gt;certbot-dns-cloudflare&lt;/a&gt; to obtain an SSL certificate outside of Home Assistant, and edit your configuration.yaml file as outlined below.&lt;/p&gt;
+
+&lt;h2 id=&quot;install--configure-lets-encrypt-add-on&quot;&gt;Install &amp;amp; Configure Let’s Encrypt Add-On&lt;/h2&gt;
+
+&lt;p&gt;Cloudflare automatically encrypts the connection between your browser and Cloudflare’s network, however the connection between your Home Assistant server and Cloudflare still needs protection.&lt;/p&gt;
+
+&lt;p&gt;Let’s Encrypt is a service that provides free, automated TLS/SSL certificates that can be used to encrypt website traffic. These certificates need to be renewed every 90 days - which Home Assistant can automatically take care of. We will use this certificate to encrypt traffic between Home Assistant and Cloudflare.&lt;/p&gt;
+
+&lt;p&gt;First, we need to install the Let’s Encrypt add-on.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Open Home Assistant, and click on &lt;em&gt;Supervisor&lt;/em&gt; in the left hand menu.&lt;/li&gt;
+  &lt;li&gt;Click &lt;em&gt;Add-on store&lt;/em&gt; on the top menu, and click &lt;em&gt;Let’s Encrypt&lt;/em&gt;.&lt;/li&gt;
+  &lt;li&gt;Click &lt;em&gt;Install&lt;/em&gt; and wait for the installation to complete.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/homeassistant-add-ins.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Toggle the &lt;em&gt;Start on boot&lt;/em&gt; option to on, and then click &lt;em&gt;Configuration&lt;/em&gt; in the top menu.&lt;/p&gt;
+
+&lt;p&gt;Paste in the following configuration, and then click &lt;em&gt;Save&lt;/em&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;email: your.email@example.com
+domains:
+  - labzilla.io
+certfile: fullchain.pem
+keyfile: privkey.pem
+challenge: dns
+dns:
+  provider: dns-cloudflare
+  cloudflare_email: your.cloudflare.account.email@example.com
+  cloudflare_api_key: YourGlobalAPIKey
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;edit-home-assistant-configurationyaml&quot;&gt;Edit Home Assistant configuration.yaml&lt;/h2&gt;
+
+&lt;p&gt;Next, we need to manually edit the Home Assistant configuration file to tell Home Assistant to (1) start using the new HTTPS certificate, and (2) automatically update Cloudflare with our current IP address.&lt;/p&gt;
+
+&lt;h3 id=&quot;install-file-editor&quot;&gt;Install File Editor&lt;/h3&gt;
+
+&lt;p&gt;To edit your configuration.yaml file in Home Assistant, you need to have their File Editor plug-in installed.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Click on &lt;em&gt;Supervisor&lt;/em&gt; in the left hand menu.&lt;/li&gt;
+  &lt;li&gt;Click &lt;em&gt;Add-on store&lt;/em&gt;, and then click on &lt;em&gt;File Editor&lt;/em&gt;&lt;/li&gt;
+  &lt;li&gt;Click &lt;em&gt;Install&lt;/em&gt; and wait for the installation to complete.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Once the installation is complete, click &lt;em&gt;Start&lt;/em&gt; and then click &lt;em&gt;Open Web UI&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/homeassistant-file-editor-open-webui.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Click the folder icon in the blue menu bar at the top.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/homeassistant-file-editor-folder.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Finally, click &lt;em&gt;configuration.yaml&lt;/em&gt; to open your configuration file.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/homeassistant-file-editor-open-config.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;httpsssl-certificate&quot;&gt;HTTPS/SSL Certificate&lt;/h4&gt;
+
+&lt;p&gt;Paste the following into your configuration.yaml file to tell Home Assistant to start using your new SSL certificate.&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;http:
+  server_port: 8123
+  ssl_certificate: /ssl/fullchain.pem
+  ssl_key: /ssl/privkey.pem
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;cloudflare-ip-address-updater&quot;&gt;Cloudflare IP Address Updater&lt;/h4&gt;
+
+&lt;p&gt;If you are on a residential Internet connection, you likely have a dynamic public IP address that can change at any time. Home Assistant can run a check every hour for changes, and update Cloudflare if your IP changes.&lt;/p&gt;
+
+&lt;p&gt;Paste the following into your configuration.yaml file. Your &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;zone&lt;/code&gt; should be your domain, and the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;records&lt;/code&gt; will be any subdomains you wish to update. Use the same Global API Key that was used above.&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;cloudflare:
+  email: youremail@example.com
+  api_key: YourGlobalAPIKey
+  zone: labzilla.io
+  records:
+    - homeassistant    
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Click the save icon &lt;span style=&quot;color: #FF5252;&quot;&gt;&lt;i class=&quot;fas fa-save&quot;&gt;&lt;/i&gt;&lt;/span&gt; in the top menu bar, and restart Home Assistant (Configuration &amp;gt; Server Controls &amp;gt; Restart Home Assistant).&lt;/p&gt;
+
+&lt;p&gt;You should now be able to access Home Assistant via https. You may receive a certificate error if you are accessing Home Assistant by IP address - you should configure an internal DNS record for your Home Assistant subdomain that resolves to your internal IP address for Home Assistant.&lt;/p&gt;
+
+&lt;h1 id=&quot;configure-your-firewall&quot;&gt;Configure your firewall&lt;/h1&gt;
+
+&lt;p&gt;Finally, you need to configure your router/firewall’s NAT/port forwarding settings. &lt;strong&gt;The specific terminology will vary based on your router/firewall model&lt;/strong&gt;; this example is based on PFSense. Check the documentation for your specific model of router/firewall if you aren’t familiar with how to configure these settings.&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Setting&lt;/th&gt;
+      &lt;th&gt;Value&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Interface&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;WAN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Protocol&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;TCP/UDP&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Source&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;&lt;a href=&quot;https://www.cloudflare.com/ips/&quot;&gt;Cloudflare’s IPv4 range&lt;/a&gt; (see below)&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Source Port&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;443&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Destination&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;WAN Address&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Redirect Target IP&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;Local IP address of Home Assistant&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Redirect Target Port&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;8123&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;Cloudflare has a &lt;a href=&quot;https://www.cloudflare.com/ips/&quot;&gt;public list&lt;/a&gt; of the IP addresses they own and control. In the previous step, we configured Cloudflare to proxy all traffic to our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;homeassistant.labzilla.io&lt;/code&gt; domain name. Since all traffic is going through Cloudflare, their IP addresses will be the &lt;em&gt;only&lt;/em&gt; source of legitimate outside traffic to Home Assistant. We can block everything else.&lt;/p&gt;
+
+&lt;h1 id=&quot;test-it-out&quot;&gt;Test it out&lt;/h1&gt;
+
+&lt;p&gt;Your Home Assistant installation should now be securely protected by Cloudflare, and our router’s firewall rules should block any attempts to connect that don’t come from Cloudflare. Test this out from a different Internet connection (i.e., tethering through your cell phone’s hotspot).&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Navigate to your Home Assistant installation by using your public IP address.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;The request should fail/time out, because the request did not originate from one of Cloudflare’s IP addresses.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;If the request does not fail/time out:
+    &lt;ul&gt;
+      &lt;li&gt;You should receive a certificate warning message.&lt;/li&gt;
+      &lt;li&gt;Verify that the SSL certificate is from Let’s Encrypt, and that it is for your subdomain.&lt;/li&gt;
+      &lt;li&gt;Double-check your firewall rules to make sure you are only allowing Cloudflare’s IP address range&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Ping your Home Assistant subdomain&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;The IP address responding to the ping should be from one of Cloudflare’s &lt;a href=&quot;https://www.cloudflare.com/ips/&quot;&gt;IP addresses&lt;/a&gt;, and not your home IP address.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;If the IP address responding matches your home IP address, &lt;a href=&quot;#add-your-subdomain&quot;&gt;double check your Cloudflare settings&lt;/a&gt; and make sure that the proxy status is correct.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Navigate to your Home Assistant installation by using your domain name&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Your Home Assistant installation should load, and the SSL certificate should be from Cloudflare.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/homeassistant-cloudflare-sslcert.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h1 id=&quot;further-configuration&quot;&gt;Further configuration&lt;/h1&gt;
+
+&lt;p&gt;There are a few more tweaks that you can make to further protect Home Assistant.&lt;/p&gt;
+
+&lt;h3 id=&quot;cloudflare-firewall-rules&quot;&gt;Cloudflare Firewall Rules&lt;/h3&gt;
+
+&lt;p&gt;You can use Cloudflare’s firewall rules to restrict access to Home Assistant. For example, you can block access from all countries except the one that you live in. Access Cloudflare’s firewall rules from the Cloudflare dashboard; select your domain, choose &lt;em&gt;Firewall&lt;/em&gt; from the top menu, and then click &lt;em&gt;Firewall Rules&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/homeassistant-cloudflare-firewall.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;turn-on-multi-factor-authentication&quot;&gt;Turn on multi-factor authentication&lt;/h3&gt;
+
+&lt;p&gt;You should also turn on multi-factor authentication within Home Assistant. This can be configured in the &lt;a href=&quot;https://www.home-assistant.io/docs/authentication/#your-account-profile&quot;&gt;profile section&lt;/a&gt; of your account.&lt;/p&gt;</content><author><name>LabZilla</name></author><category term="homeassistant" /><category term="cloudflare" /><category term="networking" /><summary type="html">Is your Home Assistant installation properly configured for secure remote access? Are you sure? I ran a quick search on Shodan and found over 36,000 publically accessible Home Assistant installations with no SSL certificate installed. Every time one of these unlucky users logs in to Home Assistant remotely, their credentials are being transmitted in clear text across the public Internet. Any data being sent back and forth to Home Assistant - such as your location - is also being transmitted in clear text. X Forwarding port 8123 on your router and calling it a day is a bad idea! Each red dot represents a potentially insecure Home Assistant installation Requirements You’ll need the following: Standard Home Assistant installation Registered domain name Free Cloudflare account Domain nameservers pointed to Cloudflare Ability to modify your router’s firewall settings Static internal IP address/DHCP reservation for Home Assistant What is Cloudflare, and why use them? Cloudflare provides a variety of products that help make websites faster and more secure. In a nutshell, Cloudflare sits between your server and people trying to access your server - transparently blocking bad actors before they reach your website. By using Cloudflare, any access to your Home Assistant installation from the public Internet first goes through Cloudflare’s servers - hiding your true public IP address, and letting you use their advanced security tools. Cloudflare Configuration For Cloudflare to function, you’ll need to create a Cloudflare account, and then tell your domain registrar to use Cloudflare’s nameservers for your domain. Add your subdomain You’ll need to come up with a subdomain that you will use to access Home Assistant. For this guide, I’ll use homeassistant.labzilla.io. Log in to the Cloudflare dashboard, and click on your site. Click on DNS in the top menu bar, and then click Add Record. Leave Type (A), TTL (Auto), and Proxied at their default settings. Under Name, enter the first part of the subdomain only. Under IPv4 address, enter your network’s public IP address. If you aren’t sure what your public IP address is, use ifconfig.me or IP Chicken to find out. Click the blue Save button. Obtain your API Key We will need your Cloudflare Global API key to configure Home Assistant. From the Cloudflare dashboard, click on the My Profile account icon in the top right corner, and then click My Profile. Click on API Tokens, and then click the View button for the Global API Key item. You will be asked to enter your password, and then your Global API Key will be displayed. Save this somewhere secure - it’s equivalent to your password. Configure Home Assistant Now that Cloudflare is set up, we need to configure Home Assistant to (1) automatically get an SSL certificate, (2) use the SSL certificate for the web interface, (3) periodically check to see if your external IP address changed, (4) and update Cloudflare accordingly. This tutorial assumes you are using the standard Home Assistant image. If you have have Supervisor listed on the left hand menu, you’re using the standard image. If you’re using Home Assistant Core, use certbot-dns-cloudflare to obtain an SSL certificate outside of Home Assistant, and edit your configuration.yaml file as outlined below. Install &amp;amp; Configure Let’s Encrypt Add-On Cloudflare automatically encrypts the connection between your browser and Cloudflare’s network, however the connection between your Home Assistant server and Cloudflare still needs protection. Let’s Encrypt is a service that provides free, automated TLS/SSL certificates that can be used to encrypt website traffic. These certificates need to be renewed every 90 days - which Home Assistant can automatically take care of. We will use this certificate to encrypt traffic between Home Assistant and Cloudflare. First, we need to install the Let’s Encrypt add-on. Open Home Assistant, and click on Supervisor in the left hand menu. Click Add-on store on the top menu, and click Let’s Encrypt. Click Install and wait for the installation to complete. Toggle the Start on boot option to on, and then click Configuration in the top menu. Paste in the following configuration, and then click Save. email: your.email@example.com domains: - labzilla.io certfile: fullchain.pem keyfile: privkey.pem challenge: dns dns: provider: dns-cloudflare cloudflare_email: your.cloudflare.account.email@example.com cloudflare_api_key: YourGlobalAPIKey Edit Home Assistant configuration.yaml Next, we need to manually edit the Home Assistant configuration file to tell Home Assistant to (1) start using the new HTTPS certificate, and (2) automatically update Cloudflare with our current IP address. Install File Editor To edit your configuration.yaml file in Home Assistant, you need to have their File Editor plug-in installed. Click on Supervisor in the left hand menu. Click Add-on store, and then click on File Editor Click Install and wait for the installation to complete. Once the installation is complete, click Start and then click Open Web UI. Click the folder icon in the blue menu bar at the top. Finally, click configuration.yaml to open your configuration file. HTTPS/SSL Certificate Paste the following into your configuration.yaml file to tell Home Assistant to start using your new SSL certificate. http: server_port: 8123 ssl_certificate: /ssl/fullchain.pem ssl_key: /ssl/privkey.pem Cloudflare IP Address Updater If you are on a residential Internet connection, you likely have a dynamic public IP address that can change at any time. Home Assistant can run a check every hour for changes, and update Cloudflare if your IP changes. Paste the following into your configuration.yaml file. Your zone should be your domain, and the records will be any subdomains you wish to update. Use the same Global API Key that was used above. cloudflare: email: youremail@example.com api_key: YourGlobalAPIKey zone: labzilla.io records: - homeassistant Click the save icon in the top menu bar, and restart Home Assistant (Configuration &amp;gt; Server Controls &amp;gt; Restart Home Assistant). You should now be able to access Home Assistant via https. You may receive a certificate error if you are accessing Home Assistant by IP address - you should configure an internal DNS record for your Home Assistant subdomain that resolves to your internal IP address for Home Assistant. Configure your firewall Finally, you need to configure your router/firewall’s NAT/port forwarding settings. The specific terminology will vary based on your router/firewall model; this example is based on PFSense. Check the documentation for your specific model of router/firewall if you aren’t familiar with how to configure these settings. Setting Value Interface WAN Protocol TCP/UDP Source Cloudflare’s IPv4 range (see below) Source Port 443 Destination WAN Address Redirect Target IP Local IP address of Home Assistant Redirect Target Port 8123 Cloudflare has a public list of the IP addresses they own and control. In the previous step, we configured Cloudflare to proxy all traffic to our homeassistant.labzilla.io domain name. Since all traffic is going through Cloudflare, their IP addresses will be the only source of legitimate outside traffic to Home Assistant. We can block everything else. Test it out Your Home Assistant installation should now be securely protected by Cloudflare, and our router’s firewall rules should block any attempts to connect that don’t come from Cloudflare. Test this out from a different Internet connection (i.e., tethering through your cell phone’s hotspot). Navigate to your Home Assistant installation by using your public IP address. The request should fail/time out, because the request did not originate from one of Cloudflare’s IP addresses. If the request does not fail/time out: You should receive a certificate warning message. Verify that the SSL certificate is from Let’s Encrypt, and that it is for your subdomain. Double-check your firewall rules to make sure you are only allowing Cloudflare’s IP address range Ping your Home Assistant subdomain The IP address responding to the ping should be from one of Cloudflare’s IP addresses, and not your home IP address. If the IP address responding matches your home IP address, double check your Cloudflare settings and make sure that the proxy status is correct. Navigate to your Home Assistant installation by using your domain name Your Home Assistant installation should load, and the SSL certificate should be from Cloudflare. Further configuration There are a few more tweaks that you can make to further protect Home Assistant. Cloudflare Firewall Rules You can use Cloudflare’s firewall rules to restrict access to Home Assistant. For example, you can block access from all countries except the one that you live in. Access Cloudflare’s firewall rules from the Cloudflare dashboard; select your domain, choose Firewall from the top menu, and then click Firewall Rules. Turn on multi-factor authentication You should also turn on multi-factor authentication within Home Assistant. This can be configured in the profile section of your account.</summary></entry><entry><title type="html">Home Assistant Door Chime via Sonos</title><link href="https://labzilla.io/blog/homeassistant-door-chime" rel="alternate" type="text/html" title="Home Assistant Door Chime via Sonos" /><published>2020-10-01T00:00:00-05:00</published><updated>2020-10-01T00:00:00-05:00</updated><id>https://labzilla.io/blog/homeassistant-door-chime</id><content type="html" xml:base="https://labzilla.io/blog/homeassistant-door-chime">&lt;p&gt;Home Assistant is an incredible piece of software. Through it’s powerful automation functionality, you can interface with devices from multiple manufacturers using completely different standards, and create extremely specific triggers, conditions, and subsequent actions.&lt;/p&gt;
+
+&lt;p&gt;I have a back door in my (one hundred year old) apartment that doesn’t always latch properly.  More than once, I’ve walked back to the kitchen only to find the door ajar and my window AC working overtime. I already use the door sensors in conjunction with Home Assistant to automatically turn the lights on, so this project only required a few minutes of tinkering.&lt;/p&gt;
+
+&lt;p&gt;I’m using:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Home Assistant (in a Docker container)&lt;/li&gt;
+  &lt;li&gt;Sonos speakers&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.amazon.com/Samsung-SmartThings-Multipurpose-Sensor-GP-U999SJVLAAA/dp/B07F956F3B&quot;&gt;Samsung SmartThings&lt;/a&gt; door &amp;amp; window sensors&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.amazon.com/GoControl-CECOMINOD016164-HUSBZB-1-USB-Hub/dp/B01GJ826F8/&quot;&gt;GoControl HUSBZB-1&lt;/a&gt; USB zigbee/z-wave hub&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;For the purposes of this guide, I’m assuming that you already have both the door sensors and your Sonos speakers set up in Home Assistant.&lt;/p&gt;
+
+&lt;h2 id=&quot;configure-the-automation&quot;&gt;Configure the automation&lt;/h2&gt;
+
+&lt;p&gt;Create a new automation by navigating to &lt;em&gt;Configuration&lt;/em&gt; &amp;gt; &lt;em&gt;Automations&lt;/em&gt; and clicking the ➕ icon down in the bottom right corner .&lt;/p&gt;
+
+&lt;h3 id=&quot;trigger&quot;&gt;&lt;strong&gt;Trigger&lt;/strong&gt;&lt;/h3&gt;
+
+&lt;p&gt;For the trigger, select &lt;em&gt;Device&lt;/em&gt; as the type, and chose &lt;em&gt;Door Sensor Opened&lt;/em&gt;. Specify a duration for how long the sensor needs to be in the “Open” state before firing an alert. For one minute, use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;00:01:00&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/kitchendoortrigger.png&quot; alt=&quot;&quot; class=&quot;shadow&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;action&quot;&gt;&lt;strong&gt;Action&lt;/strong&gt;&lt;/h3&gt;
+
+&lt;p&gt;The following actions tell Home Assistant to&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Save the current Sonos state.&lt;/li&gt;
+  &lt;li&gt;Set the volume to a predefined level.&lt;/li&gt;
+  &lt;li&gt;Group multiple Sonos speakers together to play the alert at the same time.&lt;/li&gt;
+  &lt;li&gt;Play a specific audio alert sound.&lt;/li&gt;
+  &lt;li&gt;Wait for the sound to finish.&lt;/li&gt;
+  &lt;li&gt;Resume playback of whatever was originally playing.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h4 id=&quot;save-current-queue&quot;&gt;&lt;strong&gt;Save current queue&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p&gt;If I’m home, I usually have some music going over the Sonos system. Playing an alert chime over the Sonos will interrupt anything that’s playing (and replace the queue), which we don’t want. To get around this issue, Home Assistant can take a “snapshot” of what Sonos is playing (and at what volume) for the entire system. For Spotify, the music will resume where you left off. Unfortunately with Pandora, a new song on whatever station you were listening to will start instead.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Click &lt;em&gt;Add Action&lt;/em&gt;, click the options menu (&lt;strong&gt;⋮&lt;/strong&gt;) on the right side, and then click &lt;em&gt;Edit as YAML&lt;/em&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/kitchendoor-add-action-yaml.png&quot; alt=&quot;&quot; class=&quot;shadow&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Paste in the following code:&lt;/p&gt;
+
+    &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; data: {}
+ entity_id: all
+ service: sonos.snapshot
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p class=&quot;info&quot;&gt;You will see a “UI editor is not supported for this config” warning - this is normal.&lt;/p&gt;
+
+&lt;h4 id=&quot;set-a-global-volume&quot;&gt;&lt;strong&gt;Set a global volume&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p&gt;Adjust the volume of the speakers to a predetermined level (so you don’t jump out of your skin).&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Click &lt;em&gt;Add Action&lt;/em&gt;, and change &lt;em&gt;Action Type&lt;/em&gt; to &lt;em&gt;Call Service&lt;/em&gt;. Select the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;media_player.volume_set&lt;/code&gt; service.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Under &lt;em&gt;Name(s) of entities to set volume on&lt;/em&gt;, find your Sonos speaker in the drop-down list.&lt;/p&gt;
+
+    &lt;p&gt;For whatever reason, you can’t pick multiple items from the drop down, but you can manually type in multiple entities seperated with a comma and a space - for example:
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;media_player.living_room_sonos, media_player.bedroom_sonos, media_player.kitchen_sonos&lt;/code&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Under service data, enter &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;volume_level: 0.2&lt;/code&gt; (20% volume - tweak as needed).&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;group-together-multiple-sonos-devices-to-play-your-announcement&quot;&gt;&lt;strong&gt;Group together multiple Sonos devices to play your announcement&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p&gt;I have multiple Sonos speakers in different rooms, and I want all of them to play the alert tone. You can accomplish this by grouping the speakers together. Pick one speaker to serve as the “Master,” and then specify the rest of your speakers. In my case, the living room speaker will be the master, and the bedroom and kitchen speaker will join.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Click &lt;em&gt;Add Action&lt;/em&gt;, and change &lt;em&gt;Action Type&lt;/em&gt; to &lt;em&gt;Call Service&lt;/em&gt;. Select the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sonos.join&lt;/code&gt; service.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Under &lt;em&gt;Name(s) of entities that will join the master&lt;/em&gt;, list all of the speakers (except the master) that you want to play the alert through. In my case, that would be &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;media_player.kitchen_sonos, media_player.bedroom_sonos&lt;/code&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Under &lt;em&gt;Service Data&lt;/em&gt;, specify the master speaker: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;master: media_player.living_room_sonos&lt;/code&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;play-the-announcement&quot;&gt;&lt;strong&gt;Play the announcement&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p&gt;I created a simple MP3 file with a chime and voice message:&lt;/p&gt;
+
+&lt;audio controls=&quot;true&quot; src=&quot;/assets/alert-kitchen-door.mp3&quot; type=&quot;audio/mpeg&quot;&gt; Your browser does not support MP3 playback.
+&lt;/audio&gt;
+
+&lt;p&gt;The chime noise is from &lt;a href=&quot;https://notificationsounds.com&quot;&gt;Notification Sounds&lt;/a&gt;, and the voice is from an online text-to-speech tool.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Click &lt;em&gt;Add Action&lt;/em&gt;, and change &lt;em&gt;Action Type&lt;/em&gt; to &lt;em&gt;Call Service&lt;/em&gt;. Select the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;media_player.play_media&lt;/code&gt; service.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Under &lt;em&gt;Name(s) of entities to seek media on&lt;/em&gt;, specify the master speaker you designated in the previous step: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;media_player.living_room_sonos&lt;/code&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Under &lt;em&gt;Service Data&lt;/em&gt;, specify the location of your media file and the content type:&lt;/p&gt;
+
+    &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  media_content_id: 'http://homeassistant.yourdomain.com:8123/local/kitchen-alert.mp3'
+  media_content_type: music
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p class=&quot;success&quot;&gt;You can stash your audio file in the &lt;em&gt;/config/www&lt;/em&gt; folder, which translates to the &lt;em&gt;http://homeassistant.yourdomain.com:8123/local/kitchen-alert.mp3&lt;/em&gt; URL above. If you’re running Home Assistant in Docker, the &lt;em&gt;www&lt;/em&gt; folder should be in the root of your Home Assistant Docker volume.&lt;/p&gt;
+
+&lt;h4 id=&quot;wait-for-the-announcement-to-finish&quot;&gt;&lt;strong&gt;Wait for the announcement to finish&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p&gt;You need to tell Home Assistant to wait for the announcement sound to finish by creating a &lt;em&gt;Delay&lt;/em&gt; action. The length of the delay should be about a second longer than the length of your alert sound.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Click &lt;em&gt;Add Action&lt;/em&gt;, and change &lt;em&gt;Action Type&lt;/em&gt; to &lt;em&gt;Delay&lt;/em&gt;. Enter your delay as HH:MM:SS. For a five second delay, use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;00:00:05&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;get-back-to-the-music&quot;&gt;&lt;strong&gt;Get back to the music&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p&gt;Finally, have Home Assistant resume playing whatever it interrupted.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Click &lt;em&gt;Add Action&lt;/em&gt;, click the options menu (&lt;strong&gt;⋮&lt;/strong&gt;) on the right side, and then click &lt;em&gt;Edit as YAML&lt;/em&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Paste in the following code:&lt;/p&gt;
+
+    &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; data: {}
+ entity_id: all
+ service: sonos.restore	
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;save-your-new-automation&quot;&gt;&lt;strong&gt;Save your new automation&lt;/strong&gt;&lt;/h4&gt;
+
+&lt;p&gt;Click the 💾 icon in the bottom right to save your automation. You can go back to the &lt;em&gt;Configuration&lt;/em&gt; &amp;gt; &lt;em&gt;Automations&lt;/em&gt; screen, and click &lt;em&gt;Execute&lt;/em&gt; to test it out. This is a good chance to see if the global volume you set previously is too loud/quiet.&lt;/p&gt;
+
+&lt;h2 id=&quot;raw-automationsyaml-file&quot;&gt;Raw automations.yaml file&lt;/h2&gt;
+
+&lt;p&gt;I posted this on Reddit’s &lt;a href=&quot;https://reddit.com/r/homeassistant&quot;&gt;/r/homeassistant&lt;/a&gt;, and a &lt;a href=&quot;https://www.reddit.com/r/homeassistant/comments/j8jcyx/using_home_assistant_to_alert_me_if_a_door_is/g8c1lvc/?utm_source=reddit&amp;amp;utm_medium=web2x&amp;amp;context=3&quot;&gt;commenter&lt;/a&gt; suggested posting a snapshot of the revlevant part of the  automations.yaml file. A screenshot of the entire automation config page is &lt;a href=&quot;/assets/door-chime-automation-config.png&quot;&gt;also available.&lt;/a&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;alias: 'Alert: Kitchen Door Open'
+  description: ''
+  trigger:
+  - type: opened
+    platform: device
+    device_id: 0123456789abcdefg
+    entity_id: binary_sensor.kitchen_door
+    domain: binary_sensor
+    for:
+      hours: 0
+      minutes: 1
+      seconds: 0
+  condition: []
+  action:
+  - data:
+      data:
+        priority: 1
+        url: https://homeassistant.example.com
+      message: The kitchen door was left open for longer than one minute.
+      title: Kitchen Door Ajar
+    service: notify.pushover
+  - data: {}
+    entity_id: all
+    service: sonos.snapshot
+  - data:
+      volume_level: 0.2
+    entity_id: media_player.living_room_sonos, media_player.bedroom_sonos, media_player.kitchen_sonos
+    service: media_player.volume_set
+  - data:
+      master: media_player.living_room_sonos
+    entity_id: media_player.bedroom_sonos, media_player.kitchen_sonos
+    service: sonos.join
+  - data:
+      media_content_id: http://homeassistant.example.com:8123/local/kitchen-alert.mp3
+      media_content_type: music
+    entity_id: media_player.living_room_sonos
+    service: media_player.play_media
+  - delay: 00:00:05
+  - data: {}
+    entity_id: all
+    service: sonos.restore
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;bonus-ideas&quot;&gt;Bonus Ideas&lt;/h2&gt;
+
+&lt;h4 id=&quot;get-an-alert-pushed-to-your-phone&quot;&gt;Get an alert pushed to your phone&lt;/h4&gt;
+
+&lt;p&gt;I use Pushover ($5) for a variety of different alerts, so I also added an action to my automation that notifies Pushover (which then sends an alert to my phone). You’ll need to set up a &lt;a href=&quot;https://pushover.net&quot;&gt;Pushover&lt;/a&gt; account and &lt;a href=&quot;https://www.home-assistant.io/integrations/pushover/&quot;&gt;edit your configuration.yaml&lt;/a&gt; file for this to work.&lt;/p&gt;
+
+&lt;p&gt;Add a new action, with the following settings:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Type&lt;/strong&gt;: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;call service&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Service&lt;/strong&gt;: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;notify_pushover&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Paste in the following code under &lt;em&gt;service data&lt;/em&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	data:
+	  priority: 1
+	  url: 'https://homeassistant.example.com'
+	message: The kitchen door was left open for longer than one minute.
+	title: Kitchen Door Ajar
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;stick-a-door-sensor-on-your-mailbox&quot;&gt;Stick a door sensor on your mailbox&lt;/h4&gt;
+
+&lt;p&gt;The SmartThings door &amp;amp; window sensors have a pretty decent range - try sticking one on your mailbox. Here’s what I hear when the mail gets delivered:&lt;/p&gt;
+
+&lt;audio controls=&quot;true&quot; src=&quot;/assets/aol-you-got-mail.mp3&quot; type=&quot;audio/mpeg&quot;&gt; Your browser does not support MP3 playback.
+&lt;/audio&gt;
+
+&lt;p&gt;(I turned this off after a few days, but you get the idea 😅)&lt;/p&gt;</content><author><name>LabZilla</name></author><category term="sonos" /><category term="homeassistant" /><summary type="html">Home Assistant is an incredible piece of software. Through it’s powerful automation functionality, you can interface with devices from multiple manufacturers using completely different standards, and create extremely specific triggers, conditions, and subsequent actions. I have a back door in my (one hundred year old) apartment that doesn’t always latch properly. More than once, I’ve walked back to the kitchen only to find the door ajar and my window AC working overtime. I already use the door sensors in conjunction with Home Assistant to automatically turn the lights on, so this project only required a few minutes of tinkering. I’m using: Home Assistant (in a Docker container) Sonos speakers Samsung SmartThings door &amp;amp; window sensors GoControl HUSBZB-1 USB zigbee/z-wave hub For the purposes of this guide, I’m assuming that you already have both the door sensors and your Sonos speakers set up in Home Assistant. Configure the automation Create a new automation by navigating to Configuration &amp;gt; Automations and clicking the ➕ icon down in the bottom right corner . Trigger For the trigger, select Device as the type, and chose Door Sensor Opened. Specify a duration for how long the sensor needs to be in the “Open” state before firing an alert. For one minute, use 00:01:00. Action The following actions tell Home Assistant to Save the current Sonos state. Set the volume to a predefined level. Group multiple Sonos speakers together to play the alert at the same time. Play a specific audio alert sound. Wait for the sound to finish. Resume playback of whatever was originally playing. Save current queue If I’m home, I usually have some music going over the Sonos system. Playing an alert chime over the Sonos will interrupt anything that’s playing (and replace the queue), which we don’t want. To get around this issue, Home Assistant can take a “snapshot” of what Sonos is playing (and at what volume) for the entire system. For Spotify, the music will resume where you left off. Unfortunately with Pandora, a new song on whatever station you were listening to will start instead. Click Add Action, click the options menu (⋮) on the right side, and then click Edit as YAML. Paste in the following code: data: {} entity_id: all service: sonos.snapshot You will see a “UI editor is not supported for this config” warning - this is normal. Set a global volume Adjust the volume of the speakers to a predetermined level (so you don’t jump out of your skin). Click Add Action, and change Action Type to Call Service. Select the media_player.volume_set service. Under Name(s) of entities to set volume on, find your Sonos speaker in the drop-down list. For whatever reason, you can’t pick multiple items from the drop down, but you can manually type in multiple entities seperated with a comma and a space - for example: media_player.living_room_sonos, media_player.bedroom_sonos, media_player.kitchen_sonos. Under service data, enter volume_level: 0.2 (20% volume - tweak as needed). Group together multiple Sonos devices to play your announcement I have multiple Sonos speakers in different rooms, and I want all of them to play the alert tone. You can accomplish this by grouping the speakers together. Pick one speaker to serve as the “Master,” and then specify the rest of your speakers. In my case, the living room speaker will be the master, and the bedroom and kitchen speaker will join. Click Add Action, and change Action Type to Call Service. Select the sonos.join service. Under Name(s) of entities that will join the master, list all of the speakers (except the master) that you want to play the alert through. In my case, that would be media_player.kitchen_sonos, media_player.bedroom_sonos. Under Service Data, specify the master speaker: master: media_player.living_room_sonos. Play the announcement I created a simple MP3 file with a chime and voice message: Your browser does not support MP3 playback. The chime noise is from Notification Sounds, and the voice is from an online text-to-speech tool. Click Add Action, and change Action Type to Call Service. Select the media_player.play_media service. Under Name(s) of entities to seek media on, specify the master speaker you designated in the previous step: media_player.living_room_sonos. Under Service Data, specify the location of your media file and the content type: media_content_id: 'http://homeassistant.yourdomain.com:8123/local/kitchen-alert.mp3' media_content_type: music You can stash your audio file in the /config/www folder, which translates to the http://homeassistant.yourdomain.com:8123/local/kitchen-alert.mp3 URL above. If you’re running Home Assistant in Docker, the www folder should be in the root of your Home Assistant Docker volume. Wait for the announcement to finish You need to tell Home Assistant to wait for the announcement sound to finish by creating a Delay action. The length of the delay should be about a second longer than the length of your alert sound. Click Add Action, and change Action Type to Delay. Enter your delay as HH:MM:SS. For a five second delay, use 00:00:05. Get back to the music Finally, have Home Assistant resume playing whatever it interrupted. Click Add Action, click the options menu (⋮) on the right side, and then click Edit as YAML. Paste in the following code: data: {} entity_id: all service: sonos.restore Save your new automation Click the 💾 icon in the bottom right to save your automation. You can go back to the Configuration &amp;gt; Automations screen, and click Execute to test it out. This is a good chance to see if the global volume you set previously is too loud/quiet. Raw automations.yaml file I posted this on Reddit’s /r/homeassistant, and a commenter suggested posting a snapshot of the revlevant part of the automations.yaml file. A screenshot of the entire automation config page is also available. alias: 'Alert: Kitchen Door Open' description: '' trigger: - type: opened platform: device device_id: 0123456789abcdefg entity_id: binary_sensor.kitchen_door domain: binary_sensor for: hours: 0 minutes: 1 seconds: 0 condition: [] action: - data: data: priority: 1 url: https://homeassistant.example.com message: The kitchen door was left open for longer than one minute. title: Kitchen Door Ajar service: notify.pushover - data: {} entity_id: all service: sonos.snapshot - data: volume_level: 0.2 entity_id: media_player.living_room_sonos, media_player.bedroom_sonos, media_player.kitchen_sonos service: media_player.volume_set - data: master: media_player.living_room_sonos entity_id: media_player.bedroom_sonos, media_player.kitchen_sonos service: sonos.join - data: media_content_id: http://homeassistant.example.com:8123/local/kitchen-alert.mp3 media_content_type: music entity_id: media_player.living_room_sonos service: media_player.play_media - delay: 00:00:05 - data: {} entity_id: all service: sonos.restore Bonus Ideas Get an alert pushed to your phone I use Pushover ($5) for a variety of different alerts, so I also added an action to my automation that notifies Pushover (which then sends an alert to my phone). You’ll need to set up a Pushover account and edit your configuration.yaml file for this to work. Add a new action, with the following settings: Type: call service Service: notify_pushover Paste in the following code under service data: data: priority: 1 url: 'https://homeassistant.example.com' message: The kitchen door was left open for longer than one minute. title: Kitchen Door Ajar Stick a door sensor on your mailbox The SmartThings door &amp;amp; window sensors have a pretty decent range - try sticking one on your mailbox. Here’s what I hear when the mail gets delivered: Your browser does not support MP3 playback. (I turned this off after a few days, but you get the idea 😅)</summary></entry><entry><title type="html">Dell U2718Q + MacBook Pro 2015 Displayport Problems</title><link href="https://labzilla.io/blog/dell-u2718q-monitor-bug" rel="alternate" type="text/html" title="Dell U2718Q + MacBook Pro 2015 Displayport Problems" /><published>2020-09-20T00:00:00-05:00</published><updated>2020-09-20T00:00:00-05:00</updated><id>https://labzilla.io/blog/dell-u2718q-monitor-bug</id><content type="html" xml:base="https://labzilla.io/blog/dell-u2718q-monitor-bug">&lt;p class=&quot;info&quot;&gt;I upgraded to a 2019 16” MBP + a &lt;a href=&quot;https://www.amazon.com/CalDigit-TS3-Plus-Thunderbolt-Dock/dp/B07CZPV8DF/&quot;&gt;CalDigit TS3 dock&lt;/a&gt;, and haven’t experienced this issue…yet.&lt;/p&gt;
+
+&lt;p&gt;I have a 2015 15” MacBook Pro, which I use with a &lt;a href=&quot;https://www.amazon.com/Dell-Ultrasharp-U2718Q-27-Inch-Monitor/dp/B073VYVX5S/&quot;&gt;Dell U2718Q &lt;/a&gt;monitor.&lt;/p&gt;
+
+&lt;p&gt;For some reason every 3-6 months the monitor will stubbornly refuse to connect over the Thunderbolt 2/Mini DisplayPort, and will only function over the laptop’s built-in HDMI port.&lt;/p&gt;
+
+&lt;p&gt;To resolve this issue, you can reset the Dell monitor.&lt;/p&gt;
+
+&lt;h3 id=&quot;steps-to-reset-dell-monitor&quot;&gt;Steps to reset Dell Monitor&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Shut down your MBP completely&lt;/li&gt;
+  &lt;li&gt;Disconnect all cables from the monitor and the MBP&lt;/li&gt;
+  &lt;li&gt;Turn on the MBP and log in normally.&lt;/li&gt;
+  &lt;li&gt;Press and hold the monitor power button for 10 seconds&lt;/li&gt;
+  &lt;li&gt;Reconnect power to monitor&lt;/li&gt;
+  &lt;li&gt;Reconnect DisplayPort to mini DisplayPort cable to the monitor &lt;strong&gt;first&lt;/strong&gt;, and then the MacBook Pro.&lt;/li&gt;
+  &lt;li&gt;Turn monitor on, and switch source to DisplayPort if needed.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Sidenote: the U2718Q has otherwise been fantastic. I picked up a second one a year later. Dell has an updated model &lt;a href=&quot;https://www.amazon.com/Dell-UltraSharp-U2720Q-Backlit-Monitor/dp/B086H26XWV/&quot;&gt;U2720Q&lt;/a&gt; that now features USB-C (that puts out enough power to charge a 16” 2019 MBP).&lt;/p&gt;</content><author><name>LabZilla</name></author><category term="mac" /><category term="dell" /><category term="bugs" /><summary type="html">I upgraded to a 2019 16” MBP + a CalDigit TS3 dock, and haven’t experienced this issue…yet. I have a 2015 15” MacBook Pro, which I use with a Dell U2718Q monitor. For some reason every 3-6 months the monitor will stubbornly refuse to connect over the Thunderbolt 2/Mini DisplayPort, and will only function over the laptop’s built-in HDMI port. To resolve this issue, you can reset the Dell monitor. Steps to reset Dell Monitor Shut down your MBP completely Disconnect all cables from the monitor and the MBP Turn on the MBP and log in normally. Press and hold the monitor power button for 10 seconds Reconnect power to monitor Reconnect DisplayPort to mini DisplayPort cable to the monitor first, and then the MacBook Pro. Turn monitor on, and switch source to DisplayPort if needed. Sidenote: the U2718Q has otherwise been fantastic. I picked up a second one a year later. Dell has an updated model U2720Q that now features USB-C (that puts out enough power to charge a 16” 2019 MBP).</summary></entry><entry><title type="html">Configuring a Cisco 8841-3PCC for FreePBX, 3CX, etc</title><link href="https://labzilla.io/blog/cisco-8841-3pcc" rel="alternate" type="text/html" title="Configuring a Cisco 8841-3PCC for FreePBX, 3CX, etc" /><published>2020-09-19T00:00:00-05:00</published><updated>2020-09-19T00:00:00-05:00</updated><id>https://labzilla.io/blog/cisco-8841-3pcc</id><content type="html" xml:base="https://labzilla.io/blog/cisco-8841-3pcc">&lt;p&gt;Cisco makes two different groups of IP phone - one using Enterprise Firmware and the other using Multi-Platform Firmware (sometimes referenced as 3PCC - third party call control). Phones using MPP/3PCC firmware are relatively easy to get working with alternative PBX systems like FreePBX or 3CX.&lt;/p&gt;
+
+&lt;p&gt;I have several of the Cisco 8841-3PCC phones connected to a 3CX PBX sytem. The 8800 series IP phones are rock solid, and much nicer than the Cisco SPA series phones.&lt;/p&gt;
+
+&lt;h4 id=&quot;find-the-phone-ip-address&quot;&gt;Find the phone IP address&lt;/h4&gt;
+
+&lt;p&gt;Go to Settings &amp;gt; Status &amp;gt; Network Status &amp;gt; IPv4 Status. The phone’s IP address will be displayed.&lt;/p&gt;
+
+&lt;h4 id=&quot;open-the-admin-console&quot;&gt;Open the Admin Console&lt;/h4&gt;
+
+&lt;p&gt;Navigate to the phone’s admin console: http://10.0.1.1/admin (replace the IP address with what was displayed on the phone).&lt;/p&gt;
+
+&lt;h4 id=&quot;configure-extensions&quot;&gt;Configure Extensions&lt;/h4&gt;
+
+&lt;p&gt;Click the Voice tab at the top of the admin console, and then click the phone tab. Configure the following options:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Station Display Name&lt;/strong&gt;: This is the name that you want to appear in the top-left corner of the phone (i.e, “Receiption” or “John Smith”).&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Line Key 1-10:&lt;/strong&gt; If you’re adding multiple extensions on the handset, give each one a short name (x101, x201, etc). These names will display on the screen next to the line buttons.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Click on the Ext 1 tab. Configure the following options:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Shared Line Appearance &amp;gt; Shared User ID:&lt;/strong&gt; This is the extension number, and should exactly match the extension number in your PBX.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Proxy and Registration &amp;gt; Proxy:&lt;/strong&gt; This should be the IP address of your PBX server.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Proxy and Registration &amp;gt; Outbound Proxy:&lt;/strong&gt; This should be the IP address of your PBX server.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Subscriber Information &amp;gt; User ID:&lt;/strong&gt; Extension number&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Subscriber Information &amp;gt; Auth ID/Password:&lt;/strong&gt; This is the extension authorization details configured in your PBX.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Repeat this process for each extension you want to add on the phone, and then click Submit All Changes. The phone will reboot with the new settings provisioned.&lt;/p&gt;</content><author><name>LabZilla</name></author><category term="voip" /><category term="3cx" /><category term="freepbx" /><summary type="html">Cisco makes two different groups of IP phone - one using Enterprise Firmware and the other using Multi-Platform Firmware (sometimes referenced as 3PCC - third party call control). Phones using MPP/3PCC firmware are relatively easy to get working with alternative PBX systems like FreePBX or 3CX. I have several of the Cisco 8841-3PCC phones connected to a 3CX PBX sytem. The 8800 series IP phones are rock solid, and much nicer than the Cisco SPA series phones. Find the phone IP address Go to Settings &amp;gt; Status &amp;gt; Network Status &amp;gt; IPv4 Status. The phone’s IP address will be displayed. Open the Admin Console Navigate to the phone’s admin console: http://10.0.1.1/admin (replace the IP address with what was displayed on the phone). Configure Extensions Click the Voice tab at the top of the admin console, and then click the phone tab. Configure the following options: Station Display Name: This is the name that you want to appear in the top-left corner of the phone (i.e, “Receiption” or “John Smith”). Line Key 1-10: If you’re adding multiple extensions on the handset, give each one a short name (x101, x201, etc). These names will display on the screen next to the line buttons. Click on the Ext 1 tab. Configure the following options: Shared Line Appearance &amp;gt; Shared User ID: This is the extension number, and should exactly match the extension number in your PBX. Proxy and Registration &amp;gt; Proxy: This should be the IP address of your PBX server. Proxy and Registration &amp;gt; Outbound Proxy: This should be the IP address of your PBX server. Subscriber Information &amp;gt; User ID: Extension number Subscriber Information &amp;gt; Auth ID/Password: This is the extension authorization details configured in your PBX. Repeat this process for each extension you want to add on the phone, and then click Submit All Changes. The phone will reboot with the new settings provisioned.</summary></entry><entry><title type="html">Wildcard SSL Certificates with Certbot + Cloudflare</title><link href="https://labzilla.io/blog/cloudflare-certbot" rel="alternate" type="text/html" title="Wildcard SSL Certificates with Certbot + Cloudflare" /><published>2020-09-19T00:00:00-05:00</published><updated>2020-09-19T00:00:00-05:00</updated><id>https://labzilla.io/blog/cloudflare-certbot</id><content type="html" xml:base="https://labzilla.io/blog/cloudflare-certbot">&lt;p&gt;If you use Cloudflare for your DNS, Certbot makes it easy to get a wildcard SSL certificate with automatic DNS verification. A wildcard certificate allows you to use one certificate that is valid for all subdomains on your domain (i.e., example.com, wiki.example.com, files.example.com).&lt;/p&gt;
+
+&lt;p&gt;Using the Cloudflare DNS plugin, Certbot will create, validate, and them remove a TXT record via Cloudflare’s API. This process proves that you own the domain in question (and are authorized to obtain an SSL certificate for the domain).&lt;/p&gt;
+
+&lt;h2 id=&quot;install-certbot&quot;&gt;Install Certbot&lt;/h2&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;apt-get instal python3-certbot-dns-cloudflare&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;configure-cloudflare-credentials&quot;&gt;Configure Cloudflare Credentials&lt;/h2&gt;
+
+&lt;p&gt;You will need the email address associated with your Cloudflare account, and your &lt;a href=&quot;https://support.cloudflare.com/hc/en-us/articles/200167836-Where-do-I-find-my-Cloudflare-API-key-&quot;&gt;Cloudflare Global API Key&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h4 id=&quot;create-a-secrets-directory&quot;&gt;Create a secrets directory&lt;/h4&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mkdir /root/.secrets/&lt;/code&gt;
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;touch /root/.secrets/cloudflare.ini&lt;/code&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;add-credentials-to-secrets-file&quot;&gt;Add credentials to secrets file&lt;/h4&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nano /root/.secrets/cloudflare.ini&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;The file should contain the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;dns_cloudflare_email = youremail@example.com
+dns_cloudflare_api_key = yourapikey
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Save the file (Control + X, press ‘Y’ to Save, and press Enter).&lt;/p&gt;
+
+&lt;h4 id=&quot;secure-the-secrets-file&quot;&gt;Secure the secrets file&lt;/h4&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo chmod 0700 /root/.secrets/&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo chmod 0400 /root/.secrets/cloudflare.ini&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;get-your-certificates&quot;&gt;Get your Certificates&lt;/h2&gt;
+&lt;p&gt;Now that you’ve finished setting up Certbot, it’s time to get your certificates from LetsEncrypt.&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;sudo certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini -d example.com,*.example.com --preferred-challenges dns-01
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Your certificates will be saved to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/etc/letsencrypt/live/example.com/&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p class=&quot;warning&quot;&gt;Do not move the certificates from this folder.&lt;/p&gt;
+
+&lt;h4 id=&quot;renewal&quot;&gt;Renewal&lt;/h4&gt;
+
+&lt;p&gt;Certbot creates a renewal script that runs twice per day and automatically renews certificates that are due to expire within the next 30 days. You can verify this script is running by using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo systemctl status certbot.timer&lt;/code&gt;.&lt;/p&gt;</content><author><name>LabZilla</name></author><category term="cloudflare" /><category term="certbot" /><category term="letsencrypt" /><summary type="html">If you use Cloudflare for your DNS, Certbot makes it easy to get a wildcard SSL certificate with automatic DNS verification. A wildcard certificate allows you to use one certificate that is valid for all subdomains on your domain (i.e., example.com, wiki.example.com, files.example.com). Using the Cloudflare DNS plugin, Certbot will create, validate, and them remove a TXT record via Cloudflare’s API. This process proves that you own the domain in question (and are authorized to obtain an SSL certificate for the domain). Install Certbot apt-get instal python3-certbot-dns-cloudflare Configure Cloudflare Credentials You will need the email address associated with your Cloudflare account, and your Cloudflare Global API Key. Create a secrets directory mkdir /root/.secrets/ touch /root/.secrets/cloudflare.ini Add credentials to secrets file nano /root/.secrets/cloudflare.ini The file should contain the following: dns_cloudflare_email = youremail@example.com dns_cloudflare_api_key = yourapikey Save the file (Control + X, press ‘Y’ to Save, and press Enter). Secure the secrets file sudo chmod 0700 /root/.secrets/ sudo chmod 0400 /root/.secrets/cloudflare.ini Get your Certificates Now that you’ve finished setting up Certbot, it’s time to get your certificates from LetsEncrypt. sudo certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini -d example.com,*.example.com --preferred-challenges dns-01 Your certificates will be saved to /etc/letsencrypt/live/example.com/. Do not move the certificates from this folder. Renewal Certbot creates a renewal script that runs twice per day and automatically renews certificates that are due to expire within the next 30 days. You can verify this script is running by using sudo systemctl status certbot.timer.</summary></entry><entry><title type="html">Synology NAS with Cloudflare DDNS</title><link href="https://labzilla.io/blog/synology-cloudflare-ddns" rel="alternate" type="text/html" title="Synology NAS with Cloudflare DDNS" /><published>2020-09-19T00:00:00-05:00</published><updated>2020-09-19T00:00:00-05:00</updated><id>https://labzilla.io/blog/synology-cloudflare-ddns</id><content type="html" xml:base="https://labzilla.io/blog/synology-cloudflare-ddns">&lt;p&gt;If you have a residential Internet connection through Comcast Xfinity, Spectrum, or most other major Internet service providers, you likely have a dynamic IP address that is subject to change at your ISP’s whim. Dynamic DNS (DDNS) tools are designed to automatically update your domain’s DNS records in case your external IP address changes.&lt;/p&gt;
+
+&lt;p&gt;Synology Disk Station Manager has a built-in DDNS tool that is relatively straightforward to use…however it doesn’t support updating Cloudflare.&lt;/p&gt;
+
+&lt;p&gt;However, using a custom script in task scheduler, you can overcome this issue.&lt;/p&gt;
+
+&lt;h3 id=&quot;get-zone-id-and-api-key-from-cloudflare&quot;&gt;Get Zone ID and API Key from Cloudflare&lt;/h3&gt;
+
+&lt;p&gt;To get your Cloudflare Zone ID and API key, log in to the Cloudflare Dashboard for the domain you want to use. Your Zone ID will be displayed in the bottom right corner.&lt;/p&gt;
+
+&lt;p&gt;To get your API Key, click &lt;em&gt;Get your API token&lt;/em&gt; just below your Zone ID. Click &lt;em&gt;API Tokens&lt;/em&gt; on the gray menu bar at the top, and then look for &lt;em&gt;Global API Key&lt;/em&gt; and click the &lt;em&gt;View&lt;/em&gt; button. You’ll be asked to enter your password.&lt;/p&gt;
+
+&lt;p class=&quot;info&quot;&gt;In the example below, my Zone ID is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;12345&lt;/code&gt; and my Global API Key is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;67890&lt;/code&gt;; update these values with your credentials!&lt;/p&gt;
+
+&lt;p&gt;Next, you’ll need to get your record ID. Open a terminal window, and run the following command:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl -s -X GET &quot;https://api.cloudflare.com/client/v4/zones/12345/dns_records?name=subdomain.example.com&quot; -H &quot;X-Auth-Email: your-cloudflare-login@example.com&quot; -H &quot;X-Auth-Key: 67890&quot; -H &quot;Content-Type: application/json&quot;	
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Cloudflare will return a string that begins with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;{&quot;result&quot;:[{&quot;id&quot;:&quot;abcdefg12345&quot;,&lt;/code&gt; - the string in quotes after “id’: is your record ID.&lt;/p&gt;
+
+&lt;p&gt;You should now have the following:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Zone ID: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;12345&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;API Key: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;67890&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;Record ID: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;abcdefg12345&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;create-a-script-in-task-scheduler&quot;&gt;Create a script in Task Scheduler&lt;/h3&gt;
+
+&lt;p&gt;Open Task Scheduler on your Synology NAS (Control Panel &amp;gt; Task Scheduler) and create a new task (Create &amp;gt; Scheduled Task &amp;gt; User Defined Script).&lt;/p&gt;
+
+&lt;p&gt;Give your task a name, ensure that the root user is selected, and set up a schedule (I use every 30 minutes). Click the task settings tab, and paste the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;#!/bin/sh
+curl -s -X PUT &quot;https://api.cloudflare.com/client/v4/zones/12345/dns_records/abcdefg12345&quot; -H &quot;X-Auth-Email:your-cloudflare-login@example.com&quot; -H &quot;X-Auth-Key:67890&quot; -H &quot;Content-Type: application/json&quot; --data &quot;{\&quot;id\&quot;:\&quot;12345\&quot;,\&quot;type\&quot;:\&quot;A\&quot;,\&quot;name\&quot;:\&quot;subdomain.example.com\&quot;,\&quot;content\&quot;:\&quot;`curl https://ifconfig.co`\&quot;}&quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This script will automatically find your external IP address (&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;curl https://ifconfig.co&lt;/code&gt;) and update Cloudflare.&lt;/p&gt;
+
+&lt;h3 id=&quot;bonus-use-healthchecks-to-monitor&quot;&gt;Bonus: Use Healthchecks to monitor&lt;/h3&gt;
+
+&lt;p&gt;This is why I prefer setting up my own script in Task Scheduler over Synology’s built-in DDNS client. Healthchecks.io is a fantastic free service that is useful for making sure that scheduled scripts/tasks are actually executing. If the task executes, Healthchecks updates their monitoring dashboard with a timestamp. If it doesn’t execute, you can set up a notification to alert you.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/healthchecksdash.png&quot; alt=&quot;&quot; class=&quot;shadow&quot; /&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Sign up for the service, and create a new check.&lt;/li&gt;
+  &lt;li&gt;Copy the “How to Ping” URL provided.&lt;/li&gt;
+  &lt;li&gt;Add &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;amp;&amp;amp; curl -fsS --retry 3 https://hc-ping.com/your-how-to-ping-url&lt;/code&gt; to the end of the above script.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;The final script should look something like this:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;#!/bin/sh
+curl -s -X PUT &quot;https://api.cloudflare.com/client/v4/zones/12345/dns_records/abcdefg12345&quot; -H &quot;X-Auth-Email:your-cloudflare-account@example.com&quot; -H &quot;X-Auth-Key:67890&quot; -H &quot;Content-Type: application/json&quot; --data &quot;{\&quot;id\&quot;:\&quot;12345\&quot;,\&quot;type\&quot;:\&quot;A\&quot;,\&quot;name\&quot;:\&quot;subdomain.example.com\&quot;,\&quot;content\&quot;:\&quot;`curl https://ifconfig.co`\&quot;}&quot; &amp;amp;&amp;amp; curl -fsS --retry 3 https://hc-ping.com/your-how-to-ping-url
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name>LabZilla</name></author><category term="cloudflare" /><category term="synology" /><category term="ddns" /><summary type="html">If you have a residential Internet connection through Comcast Xfinity, Spectrum, or most other major Internet service providers, you likely have a dynamic IP address that is subject to change at your ISP’s whim. Dynamic DNS (DDNS) tools are designed to automatically update your domain’s DNS records in case your external IP address changes. Synology Disk Station Manager has a built-in DDNS tool that is relatively straightforward to use…however it doesn’t support updating Cloudflare. However, using a custom script in task scheduler, you can overcome this issue. Get Zone ID and API Key from Cloudflare To get your Cloudflare Zone ID and API key, log in to the Cloudflare Dashboard for the domain you want to use. Your Zone ID will be displayed in the bottom right corner. To get your API Key, click Get your API token just below your Zone ID. Click API Tokens on the gray menu bar at the top, and then look for Global API Key and click the View button. You’ll be asked to enter your password. In the example below, my Zone ID is 12345 and my Global API Key is 67890; update these values with your credentials! Next, you’ll need to get your record ID. Open a terminal window, and run the following command: curl -s -X GET &quot;https://api.cloudflare.com/client/v4/zones/12345/dns_records?name=subdomain.example.com&quot; -H &quot;X-Auth-Email: your-cloudflare-login@example.com&quot; -H &quot;X-Auth-Key: 67890&quot; -H &quot;Content-Type: application/json&quot; Cloudflare will return a string that begins with {&quot;result&quot;:[{&quot;id&quot;:&quot;abcdefg12345&quot;, - the string in quotes after “id’: is your record ID. You should now have the following: Zone ID: 12345 API Key: 67890 Record ID: abcdefg12345 Create a script in Task Scheduler Open Task Scheduler on your Synology NAS (Control Panel &amp;gt; Task Scheduler) and create a new task (Create &amp;gt; Scheduled Task &amp;gt; User Defined Script). Give your task a name, ensure that the root user is selected, and set up a schedule (I use every 30 minutes). Click the task settings tab, and paste the following: #!/bin/sh curl -s -X PUT &quot;https://api.cloudflare.com/client/v4/zones/12345/dns_records/abcdefg12345&quot; -H &quot;X-Auth-Email:your-cloudflare-login@example.com&quot; -H &quot;X-Auth-Key:67890&quot; -H &quot;Content-Type: application/json&quot; --data &quot;{\&quot;id\&quot;:\&quot;12345\&quot;,\&quot;type\&quot;:\&quot;A\&quot;,\&quot;name\&quot;:\&quot;subdomain.example.com\&quot;,\&quot;content\&quot;:\&quot;`curl https://ifconfig.co`\&quot;}&quot; This script will automatically find your external IP address (curl https://ifconfig.co) and update Cloudflare. Bonus: Use Healthchecks to monitor This is why I prefer setting up my own script in Task Scheduler over Synology’s built-in DDNS client. Healthchecks.io is a fantastic free service that is useful for making sure that scheduled scripts/tasks are actually executing. If the task executes, Healthchecks updates their monitoring dashboard with a timestamp. If it doesn’t execute, you can set up a notification to alert you. Sign up for the service, and create a new check. Copy the “How to Ping” URL provided. Add &amp;amp;&amp;amp; curl -fsS --retry 3 https://hc-ping.com/your-how-to-ping-url to the end of the above script. The final script should look something like this: #!/bin/sh curl -s -X PUT &quot;https://api.cloudflare.com/client/v4/zones/12345/dns_records/abcdefg12345&quot; -H &quot;X-Auth-Email:your-cloudflare-account@example.com&quot; -H &quot;X-Auth-Key:67890&quot; -H &quot;Content-Type: application/json&quot; --data &quot;{\&quot;id\&quot;:\&quot;12345\&quot;,\&quot;type\&quot;:\&quot;A\&quot;,\&quot;name\&quot;:\&quot;subdomain.example.com\&quot;,\&quot;content\&quot;:\&quot;`curl https://ifconfig.co`\&quot;}&quot; &amp;amp;&amp;amp; curl -fsS --retry 3 https://hc-ping.com/your-how-to-ping-url</summary></entry></feed>

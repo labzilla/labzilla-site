@@ -1,0 +1,1215 @@
+<!DOCTYPE html><html lang="en">
+  <head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><title>Your Smart TV is probably ignoring your PiHole - LabZilla</title>
+
+<meta name="description" content="Welcome Hacker News readers!• Thank you to M. Hammad Mazhar for his research that inspired this guide.• @healyio made some great additional suggestions in th...">
+<link rel="canonical" href="https://labzilla.io/blog/force-dns-pihole"><link rel="alternate" type="application/rss+xml" title="LabZilla" href="/feed.xml"><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico">
+
+<meta name="msapplication-TileColor" content="#ffc40d"><meta name="msapplication-config" content="/assets/browserconfig.xml">
+
+<meta name="theme-color" content="#ffffff">
+<!-- end favicons snippet --><link rel="stylesheet" href="/assets/css/main.css"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" ><!-- start custom head snippets -->
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "df6b74ad06574b6b9f2a2fa3bb09d80e"}'></script><!-- End Cloudflare Web Analytics -->
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-178481021-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-178481021-1');
+</script>
+
+
+<!-- end custom head snippets -->
+<script>(function() {
+  window.isArray = function(val) {
+    return Object.prototype.toString.call(val) === '[object Array]';
+  };
+  window.isString = function(val) {
+    return typeof val === 'string';
+  };
+
+  window.hasEvent = function(event) {
+    return 'on'.concat(event) in window.document;
+  };
+
+  window.isOverallScroller = function(node) {
+    return node === document.documentElement || node === document.body || node === window;
+  };
+
+  window.isFormElement = function(node) {
+    var tagName = node.tagName;
+    return tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA';
+  };
+
+  window.pageLoad = (function () {
+    var loaded = false, cbs = [];
+    window.addEventListener('load', function () {
+      var i;
+      loaded = true;
+      if (cbs.length > 0) {
+        for (i = 0; i < cbs.length; i++) {
+          cbs[i]();
+        }
+      }
+    });
+    return {
+      then: function(cb) {
+        cb && (loaded ? cb() : (cbs.push(cb)));
+      }
+    };
+  })();
+})();
+(function() {
+  window.throttle = function(func, wait) {
+    var args, result, thisArg, timeoutId, lastCalled = 0;
+
+    function trailingCall() {
+      lastCalled = new Date;
+      timeoutId = null;
+      result = func.apply(thisArg, args);
+    }
+    return function() {
+      var now = new Date,
+        remaining = wait - (now - lastCalled);
+
+      args = arguments;
+      thisArg = this;
+
+      if (remaining <= 0) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+        lastCalled = now;
+        result = func.apply(thisArg, args);
+      } else if (!timeoutId) {
+        timeoutId = setTimeout(trailingCall, remaining);
+      }
+      return result;
+    };
+  };
+})();
+(function() {
+  var Set = (function() {
+    var add = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (data[i] === item) {
+          return;
+        }
+      }
+      this.size ++;
+      data.push(item);
+      return data;
+    };
+
+    var Set = function(data) {
+      this.size = 0;
+      this._data = [];
+      var i;
+      if (data.length > 0) {
+        for (i = 0; i < data.length; i++) {
+          add.call(this, data[i]);
+        }
+      }
+    };
+    Set.prototype.add = add;
+    Set.prototype.get = function(index) { return this._data[index]; };
+    Set.prototype.has = function(item) {
+      var i, data = this._data;
+      for (i = 0; i < data.length; i++) {
+        if (this.get(i) === item) {
+          return true;
+        }
+      }
+      return false;
+    };
+    Set.prototype.is = function(map) {
+      if (map._data.length !== this._data.length) { return false; }
+      var i, j, flag, tData = this._data, mData = map._data;
+      for (i = 0; i < tData.length; i++) {
+        for (flag = false, j = 0; j < mData.length; j++) {
+          if (tData[i] === mData[j]) {
+            flag = true;
+            break;
+          }
+        }
+        if (!flag) { return false; }
+      }
+      return true;
+    };
+    Set.prototype.values = function() {
+      return this._data;
+    };
+    return Set;
+  })();
+
+  window.Lazyload = (function(doc) {
+    var queue = {js: [], css: []}, sources = {js: {}, css: {}}, context = this;
+    var createNode = function(name, attrs) {
+      var node = doc.createElement(name), attr;
+      for (attr in attrs) {
+        if (attrs.hasOwnProperty(attr)) {
+          node.setAttribute(attr, attrs[attr]);
+        }
+      }
+      return node;
+    };
+    var end = function(type, url) {
+      var s, q, qi, cbs, i, j, cur, val, flag;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        s[url] = true;
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (cur.urls.has(url)) {
+            qi = cur, val = qi.urls.values();
+            qi && (cbs = qi.callbacks);
+            for (flag = true, j = 0; j < val.length; j++) {
+              cur = val[j];
+              if (!s[cur]) {
+                flag = false;
+              }
+            }
+            if (flag && cbs && cbs.length > 0) {
+              for (j = 0; j < cbs.length; j++) {
+                cbs[j].call(context);
+              }
+              qi.load = true;
+            }
+          }
+        }
+      }
+    };
+    var load = function(type, urls, callback) {
+      var s, q, qi, node, i, cur,
+        _urls = typeof urls === 'string' ? new Set([urls]) : new Set(urls), val, url;
+      if (type === 'js' || type ==='css') {
+        s = sources[type], q = queue[type];
+        for (i = 0; i < q.length; i++) {
+          cur = q[i];
+          if (_urls.is(cur.urls)) {
+            qi = cur;
+            break;
+          }
+        }
+        val = _urls.values();
+        if (qi) {
+          callback && (qi.load || qi.callbacks.push(callback));
+          callback && (qi.load && callback());
+        } else {
+          q.push({
+            urls: _urls,
+            callbacks: callback ? [callback] : [],
+            load: false
+          });
+          for (i = 0; i < val.length; i++) {
+            node = null, url = val[i];
+            if (s[url] === undefined) {
+              (type === 'js' ) && (node = createNode('script', { src: url }));
+              (type === 'css') && (node = createNode('link', { rel: 'stylesheet', href: url }));
+              if (node) {
+                node.onload = (function(type, url) {
+                  return function() {
+                    end(type, url);
+                  };
+                })(type, url);
+                (doc.head || doc.body).appendChild(node);
+                s[url] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+    return {
+      js: function(url, callback) {
+        load('js', url, callback);
+      },
+      css: function(url, callback) {
+        load('css', url, callback);
+      }
+    };
+  })(this.document);
+})();
+</script><script>
+  (function() {
+    var TEXT_VARIABLES = {
+      version: '2.2.6',
+      sources: {
+        font_awesome: 'https://use.fontawesome.com/releases/v5.0.13/css/all.css',
+        jquery: 'https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js',
+        leancloud_js_sdk: '//cdn.jsdelivr.net/npm/leancloud-storage@3.13.2/dist/av-min.js',
+        chart: 'https://cdn.bootcss.com/Chart.js/2.7.2/Chart.bundle.min.js',
+        gitalk: {
+          js: 'https://cdn.bootcss.com/gitalk/1.2.2/gitalk.min.js',
+          css: 'https://cdn.bootcss.com/gitalk/1.2.2/gitalk.min.css'
+        },
+        valine: 'https://unpkg.com/valine/dist/Valine.min.js',
+        mathjax: 'https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML',
+        mermaid: 'https://cdn.bootcss.com/mermaid/8.0.0-rc.8/mermaid.min.js'
+      },
+      site: {
+        toc: {
+          selectors: 'h1,h2,h3'
+        }
+      },
+      paths: {
+        search_js: '/assets/search.js'
+      }
+    };
+    window.TEXT_VARIABLES = TEXT_VARIABLES;
+  })();
+</script>
+</head>
+  <body>
+    <div class="root" data-is-touch="false">
+      <div class="layout--page js-page-root"><div class="page__main js-page-main page__viewport has-aside cell cell--auto">
+
+      <div class="page__main-inner"><div class="page__header d-print-none"><header class="header"><div class="main">
+      <div class="header__title">
+        <div class="header__brand"><?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Generator: Adobe Illustrator 19.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<path style="fill:#FF6536;" d="M54.211,249.7c0,0,20.228,29.717,62.624,54.871c0,0-30.705-259.502,169.358-304.571
+	c-51.257,188.121,65.2,241.174,107.651,141.786c70.893,94.651,17.066,177.229,17.066,177.229
+	c29.069,4.188,53.487-27.57,53.487-27.57c0.218,3.912,0.34,7.851,0.34,11.818C464.738,418.545,371.283,512,256,512
+	S47.262,418.545,47.262,303.262C47.262,284.744,49.686,266.794,54.211,249.7z"/>
+<path style="fill:#FF421D;" d="M464.398,291.445c0,0-24.418,31.758-53.487,27.57c0,0,53.827-82.578-17.066-177.229
+	C351.394,241.174,234.937,188.121,286.194,0C275.479,2.414,265.431,5.447,256,9.018V512c115.283,0,208.738-93.455,208.738-208.738
+	C464.738,299.295,464.616,295.357,464.398,291.445z"/>
+<path style="fill:#FBBF00;" d="M164.456,420.456C164.456,471.014,205.442,512,256,512s91.544-40.986,91.544-91.544
+	c0-27.061-11.741-51.379-30.408-68.138c-35.394,48.085-85.832-24.856-46.524-78.122
+	C270.612,274.196,164.456,287.499,164.456,420.456z"/>
+<path style="fill:#FFA900;" d="M347.544,420.456c0-27.061-11.741-51.379-30.408-68.138c-35.394,48.085-85.832-24.856-46.524-78.122
+	c0,0-5.768,0.725-14.612,3.516V512C306.558,512,347.544,471.014,347.544,420.456z"/>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+</svg>
+<a title="Labzilla
+" href="/">LabZilla</a></div><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></div><nav class="navigation">
+        <ul><li class="navigation__item"><a href="/">Home</a></li><li class="navigation__item"><a href="/archive.html">Topics</a></li><li class="navigation__item"><a href="/current-config.html">Current Gear</a></li><li class="navigation__item"><a href="/about.html">About/Contact</a></li><li><button class="button button--secondary button--circle search-button js-search-toggle"><i class="fas fa-search"></i></button></li></ul>
+      </nav></div>
+  </header>
+</div><div class="page__content"><div class ="main"><div class="grid grid--reverse">
+
+              <div class="col-aside d-print-none js-col-aside"><aside class="page__aside js-page-aside"><div class="toc-aside js-toc-root"></div>
+</aside></div>
+
+              <div class="col-main cell cell--auto"><!-- start custom main top snippet -->
+
+<!-- end custom main top snippet -->
+<article itemscope itemtype="http://schema.org/Article"><div class="article__header"><header><h1>Your Smart TV is probably ignoring your PiHole</h1></header></div><meta itemprop="headline" content="Your Smart TV is probably ignoring your PiHole"><div class="article__info clearfix"><ul class="left-col menu"><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=pfsense">pfsense</a>
+            </li><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=pihole">pihole</a>
+            </li><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=networking">networking</a>
+            </li><li>
+              <a class="button button--secondary button--pill button--sm"
+                href="/archive.html?tag=dns">dns</a>
+            </li></ul><ul class="right-col menu"><li><i class="far fa-calendar-alt"></i> <span>Nov 09, 2020</span>
+            </li></ul></div><meta itemprop="author" content="LabZilla"/><meta itemprop="datePublished" content="2020-11-09T00:00:00-06:00">
+    <meta itemprop="keywords" content="pfsense,pihole,networking,dns"><div class="js-article-content"><div class="layout--article"><!-- start custom article top snippet -->
+
+<!-- end custom article top snippet -->
+<div class="article__content" itemprop="articleBody"><p class="warning"><span style="color: #F48120;"><i class="fab fa-hacker-news"></i></span> <strong>Welcome Hacker News readers!</strong><br />
+<strong>•</strong> Thank you to <a href="https://homepage.cs.uiowa.edu/~mmazhar/">M. Hammad Mazhar</a> for his <a href="https://arxiv.org/pdf/2001.08288.pdf">research</a> that inspired this guide.<br />
+<strong>•</strong> <a href="https://twitter.com/healeyio">@healyio</a> made some great additional suggestions in this Twitter <a href="https://twitter.com/healeyio/status/1335347122649006080">thread</a> which I incoporated in the DNS over TLS/HTTPS <a href="#dns-over-tlshttps">section</a>.<br />
+<strong>•</strong> The HN <a href="https://news.ycombinator.com/item?id=25313480">comment thread</a> is full of insightful comments from individuals who work on IoT hardware and other embedded devices, and is well worth a read.<br />
+<strong>•</strong> Finally, you can subscribe to the <a href="/feed.xml">RSS feed</a> or follow on <a href="https://twitter.com/labzilla">Twitter</a> for updates.</p>
+
+<p>If you’re using PiHole on your network to block ads and prevent your various smart devices from sending tracking information to their manufacturers, <strong>you might be surprised to find out that some of these devices are using a sneaky tactic to bypass your PiHole entirely.</strong></p>
+
+<p>Smart devices manufacturers often “hard-code” in a public DNS server, like Google’s 8.8.8.8, and their devices ignore whatever DNS server is assigned by your router - such as your PiHole.</p>
+
+<p><a href="https://arxiv.org/pdf/2001.08288.pdf">Nearly 70% of smart TVs and 46% of game consoles</a> were found to contain hardcoded DNS settings - allowing them to simply ignore your local network’s DNS server entirely. On average, Smart TVs generate an average of 60 megabytes of outgoing Internet traffic <em>per day</em>, all the while bypassing tools like PiHole.</p>
+
+<h2 id="force-all-dns-queries-through-pihole">Force all DNS queries through PiHole</h2>
+
+<p>Fortunately, with a few simple firewall rules, you can intercept these hardcoded DNS queries and redirect them to your PiHole.  These instructions are for pfSense, however you should be able to adapt them for Sophos XG, Ubiquiti EdgeRouter, etc.</p>
+
+<h3 id="create-nat-rules">Create NAT Rules</h3>
+
+<p>Log in to your pfSense admin interface, and navigate to <em>Firewall</em> &gt; <em>NAT</em> &gt; <em>Port Forward</em>.</p>
+
+<p>We’re going to create two Port Forward NAT rules - one to redirect any DNS queries originating from devices on the LAN to PiHole, and another to allow PiHole to commmunicate with external DNS servers. We will also create an additional outbound NAT rule that will make this process invisible to any clients on the network with hardcoded DNS.</p>
+
+<p><strong>NAT Rule 1: Redirect DNS queries to PiHole</strong></p>
+
+<p>Click the <em>Add</em> button to create your first new NAT Port Forward rule.</p>
+
+<ul>
+  <li><strong>Interface:</strong> LAN</li>
+  <li><strong>Protcol:</strong> TCP/UDP</li>
+  <li><strong>Source:</strong> LAN net (you may need to click the blue show advanced button to see this option)</li>
+  <li><strong>Destination - Invert match:</strong> Checked</li>
+  <li><strong>Destination - Type:</strong> Single host or alias</li>
+  <li><strong>Destination - Address/mask:</strong> Your PiHole’s IP address</li>
+  <li><strong>Destination Port Range - From:</strong> DNS</li>
+  <li><strong>Destination Port Range - To:</strong> DNS</li>
+  <li><strong>Redirect Target IP:</strong> Your PiHole’s IP address</li>
+  <li><strong>Redirect Target Port:</strong> DNS</li>
+  <li><strong>Description:</strong> Intercept any outgoing DNS queries and redirect them to PiHole.</li>
+</ul>
+
+<p><strong>NAT Rule 2: Exempt PiHole from DNS query redirects</strong></p>
+
+<p>Click the <em>Add</em> button to create your second new NAT Port Forward rule.</p>
+
+<ul>
+  <li><strong>No RDR (NOT):</strong> Checked</li>
+  <li><strong>Interface:</strong> LAN</li>
+  <li><strong>Protcol:</strong> TCP/UDP</li>
+  <li><strong>Source - Type:</strong> Single host or alias</li>
+  <li><strong>Source - Address/Mask:</strong> Your PiHole’s IP address</li>
+  <li><strong>Destination:</strong> Any</li>
+  <li><strong>Destination Port Range - From:</strong> DNS</li>
+  <li><strong>Destination Port Range - From:</strong> DNS</li>
+  <li><strong>Description:</strong> Allow PiHole to reach external DNS servers</li>
+</ul>
+
+<p class="warning"><strong>Note:</strong> pfSense (and most other firewalls) process rules from top to bottom. Make sure you drag the second rule exempting PiHole from DNS query redirects <em>above</em> the first rule we created - otherwise PiHole will not be able to contact external DNS servers.</p>
+
+<p><strong>NAT Rule 3: Prevent clients from giving unexpected source errors</strong></p>
+
+<p>Finally, we need to create an outbound NAT rule. Navigate to <em>Firewall</em> &gt; <em>NAT</em> &gt; <em>Outbound</em>.</p>
+
+<ul>
+  <li><strong>Interface:</strong> LAN</li>
+  <li><strong>Address Family:</strong> IPv4+IPv6</li>
+  <li><strong>Protocol:</strong> any</li>
+  <li><strong>Source - Type:</strong> Network</li>
+  <li><strong>Source - Network for the outbound NAT mapping:</strong> Your internal LAN network</li>
+  <li><strong>Destination - Type:</strong> Network</li>
+  <li><strong>Destination - Network for the outbound NAT Mappings:</strong> Your PiHole’s IP Address</li>
+  <li><strong>Destination Port Range:</strong> 53</li>
+  <li><strong>Translation:</strong> Interface Address</li>
+  <li><strong>Description:</strong> Prevents hardcoded DNS clients from giving unexpected source error after DNS redirected to PiHole.</li>
+</ul>
+
+<h3 id="test-it-out">Test it out</h3>
+
+<p>You can easily test to make sure your DNS redirection is working properly.</p>
+
+<ol>
+  <li>Create a new, temporary internal DNS entry on your network (“piholetest.example.com”), and point it to 10.0.1.1. You can do this right from PiHole under <em>Local DNS Records</em>.</li>
+  <li>Manually set your computer’s DNS server to <em>1.1.1.1</em>.</li>
+  <li>Open a terminal window (or command promt on Windows), and run <code class="language-plaintext highlighter-rouge">nslookup piholetest.example.com</code></li>
+  <li>
+    <p>If you set this up correctly, <code class="language-plaintext highlighter-rouge">nslookup</code> should return 10.0.1.1. Your computer <em>thinks</em> it’s receiving DNS records from 1.1.1.1, while in reality they are coming from your PiHole.</p>
+
+    <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code> macbookpro:~ labzilla$ nslookup piholetest.example.com
+ Server:		1.1.1.1
+ Address:	1.1.1.1#53
+	
+ Name:	piholetest.example.com
+ Address: 10.0.1.1
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>You can further demonstate this by temporarily disabling the first NAT rule we created, and running the same <code class="language-plaintext highlighter-rouge">nslookup piholetest.example.com</code> command:</p>
+
+    <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code> macbookpro:~ labzilla$ nslookup piholetest.example.com
+ Server:		1.1.1.1
+ Address:	1.1.1.1#53
+	
+ ** server can't find piholetest.example.com: NXDOMAIN 
+</code></pre></div>    </div>
+
+    <p>As “piholetest.example.com” doesn’t exist on the public Internet, the real 1.1.1.1 server has no record to provide - resulting in your <code class="language-plaintext highlighter-rouge">nslookup</code> request returning a NXDOMAIN error.</p>
+  </li>
+</ol>
+
+<p><strong>Don’t forget to revert your computer’s DNS settings back to their original value, and reenable any firewall rules you temporary disabled while testing.</strong></p>
+
+<h2 id="dns-over-tlshttps">DNS over TLS/HTTPS</h2>
+
+<p><a href="https://twitter.com/healeyio">Andrew Healey</a> <span style="color: #00acee;"><i class="fab fa-twitter"></i></span> brought up a great point in a tweet responding to this article:</p>
+
+<blockquote class="twitter-tweet" data-dnt="true" data-theme="light"><p lang="en" dir="ltr">Saw this article [1] on HN to block hardcoded DNS settings on Smart TVs and IoT devices. They&#39;ll just bypass this with DNS of HTTPS (DoH). If you&#39;re going this far, take 10 minutes and a couple additional steps to do it right. A thread. 🧵1/<br /><br />[1] <a href="https://t.co/TZgQhIZEer">https://t.co/TZgQhIZEer</a></p>&mdash; Andrew Healey (@healeyio) <a href="https://twitter.com/healeyio/status/1335347122649006080?ref_src=twsrc%5Etfw">December 5, 2020</a></blockquote>
+<script async="" src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<p>He’s right. DNS over HTTPS travels over port 443, and would sail right through these firewall rules (as would DNS overt TLS). Blocking HTTPS/443 is not an option for obvious reasons. Instead, we can mitigate this threat by blocking all outbound traffic to known public DNS servers (except for PiHole).</p>
+
+<p>This option isn’t perfect - the firewall rule is only as good as the source list behind it.</p>
+
+<h3 id="create-ip-list-in-pfsense">Create IP List in pfSense</h3>
+
+<p>You can aliases in pfSense that will automatically pull down (and update) a list of IP addresses. <a href="https://public-dns.info">Public-DNS.info</a> maintains a list of publicly accessible DNS servers that we can have pfSense copy for firewall rules.</p>
+
+<p>From the pfSense dashboard, click <em>Firewall</em>, then click <em>Aliases</em>. Click <em>Add</em> in the bottom right corner. Configure the alias with the following uptions:</p>
+
+<ul>
+  <li><strong>Name:</strong> IP_PublicDNS</li>
+  <li><strong>Description:</strong> Public DNS Server List</li>
+  <li><strong>Type:</strong> URL Table (IPs)</li>
+  <li><strong>URL Table (IPs):</strong> http://public-dns.info/nameservers-all.txt</li>
+  <li><strong>Update Frequency:</strong> 7 (this is the drop down menu after the “/” in the above field)</li>
+</ul>
+
+<h3 id="create-firewall-rules-using-ip-list">Create Firewall Rules using IP List</h3>
+
+<p>Now that we have our alias list of public DNS servers configured in pfSense, we can make rules to block outgoing traffic (1) destined for IP addresses that are on the list (2) that didn’t come from PiHole.</p>
+
+<blockquote>
+  <p>I prefer to use firewall rules that are as narrowly tailored as possible, so I’m opting to block <em>only</em> DNS over HTTPS (port 443) and DNS over TLS (port 853) traffic. You could also just block everything.</p>
+</blockquote>
+
+<p>Navigate to <em>Firewall</em> &gt; <em>Rules</em>, and click the <em>LAN</em> tab. Click the <em>Add</em> button in the bottom right to make a new rule.</p>
+
+<ul>
+  <li><strong>Action:</strong> Block</li>
+  <li><strong>Interface:</strong> LAN</li>
+  <li><strong>Address Family:</strong> IPv4+IPv6</li>
+  <li><strong>Protocol:</strong> TCP/UDP</li>
+  <li><strong>Source - Invert match:</strong> Checked</li>
+  <li><strong>Source:</strong> Your PiHole’s internal IP address</li>
+  <li><strong>Destination:</strong> Single host/alias - IP_PublicDNS (or whatever you called your alias in the previous section).</li>
+  <li><strong>Destination Port Range:</strong> HTTPS</li>
+  <li><strong>Log:</strong> Checked (optional, but helpful for troubleshooting)</li>
+  <li><strong>Description:</strong> Block HTTPS - PublicDNS list</li>
+</ul>
+
+<p>Save the rule, and then click the <em>Copy</em> <i class="far fa-clone"></i> icon to duplicate the rule to also block DNS over TLS. Change the following:</p>
+
+<ul>
+  <li><strong>Destination Port Range:</strong> DNS over TLS (from/to)</li>
+  <li><strong>Description:</strong> Block DNS over TLS - PublicDNS list</li>
+</ul>
+
+<p>Save the rule, and then click <em>Apply Changes</em>.</p>
+
+<h3 id="test-it-out-1">Test it out</h3>
+
+<p>You can test to make sure this rule is working properly by opening a terminal window and running the following command <code class="language-plaintext highlighter-rouge">telnet 1.1.1.1 443</code>. The connection should eventually fail:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>	macbookpro:~ labzilla$ telnet 1.1.1.1 443
+	Trying 1.1.1.1...
+</code></pre></div></div>
+
+<p>If you disable the firewall rule, the connection will succeed:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>	macbookpro:~ labzilla$ telnet 1.1.1.1 443
+	Trying 1.1.1.1...
+	Connected to one.one.one.one.
+</code></pre></div></div>
+
+<p>Don’t forget to reenable your firewall rules!</p>
+
+<h2 id="hacker-news">Hacker News</h2>
+
+<p>This post hit the front page of Hacker News <span style="color: #F48120;"><i class="fab fa-hacker-news"></i></span> on Saturday December 5th, 2020. Thank you <a href="https://boramalper.org">@boramalper</a> for submitting it, and I hope you found the information useful!</p>
+
+<ul>
+  <li>If you’re curious about what the Hacker News bump looks like - this blog normally sees about 100 hits per day. Between December 5th-6th, this post had over 70,000 views.</li>
+  <li>The <a href="https://news.ycombinator.com/item?id=25313480">original comment thread</a> is full of insightful comments from individuals who work on IoT hardware and other embedded devices, and is well worth a read.</li>
+  <li>I added an additional <a href="#dns-over-tlshttps">section</a> incorporating some of the suggestion that <a href="https://twitter.com/healeyio">@healyio</a> made in this Twitter <a href="https://twitter.com/healeyio/status/1335347122649006080">thread</a> regarding DNS over TLS/HTTPS.</li>
+</ul>
+
+</div>
+  
+
+  <div class="d-print-none"><footer class="article__footer"><meta itemprop="dateModified" content="2020-11-09T00:00:00-06:00"><!-- start custom article footer snippet -->
+
+<!-- end custom article footer snippet -->
+<div class="article__subscribe"><div class="article__section-navigator clearfix">
+
+</div>
+
+<div class="highlight"><center>
+<h4>Thanks for reading!</h4></center>
+<p>If you're interested, you can <a href="https://labzilla.us7.list-manage.com/subscribe?u=d0145f9c6a917baa9c61a854b&id=b2476892c3">get an email</a> whenever there's a new post. Your email address will never be used for anything else.</p> 
+<p>You can also <i class="fas fa-rss"></i> <a type="application/rss+xml" href="/feed.xml">subscribe</a> to the RSS feed.</p><!-- Addthis BEGIN --><script type="text/javascript"
+    src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5fce8812a2aea8b8"></script>
+  <div class="addthis_inline_share_toolbox addthis_default_style"></div><!-- Addthis END -->
+</div></div><!-- start custom comments snippet -->
+<script src="https://utteranc.es/client.js"
+        repo="jdervish/labzilla-comments"
+        issue-term="pathname"
+        theme="boxy-light"
+        crossorigin="anonymous"
+        async>
+</script>
+<!-- end custom comments snippet --></footer>
+<div class="article__section-navigator clearfix"><div class="previous"><span>PREVIOUS</span><a href="/blog/homeassistant-remote-access">Secure Home Assistant Remote Access</a></div><div class="next"><span>NEXT</span><a href="/blog/2019-macbook-pro-gpu-issues">2019 MacBook Pro + Radeon 5500m Issues</a></div></div></div>
+
+</div>
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    $(function() {
+      var $this ,$scroll;
+      var $articleContent = $('.js-article-content');
+      var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+      var scroll = hasSidebar ? '.js-page-main' : 'html, body';
+      $scroll = $(scroll);
+
+      $articleContent.find('.highlight').each(function() {
+        $this = $(this);
+        $this.attr('data-lang', $this.find('code').attr('data-lang'));
+      });
+      $articleContent.find('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]').each(function() {
+        $this = $(this);
+        $this.append($('<a class="anchor d-print-none" aria-hidden="true"></a>').html('<i class="fas fa-anchor"></i>'));
+      });
+      $articleContent.on('click', '.anchor', function() {
+        $scroll.scrollToAnchor('#' + $(this).parent().attr('id'), 400);
+      });
+    });
+  });
+})();
+</script>
+</div><section class="page__comments d-print-none"></section></article><!-- start custom main bottom snippet -->
+
+<!-- end custom main bottom snippet -->
+</div>
+            </div></div></div><div class="page__footer d-print-none">
+<footer class="footer py-4 js-page-footer">
+  <div class="main"><div itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LabZilla"><meta itemprop="url" content="https://labzilla.io"><div class="footer__author-links"><div class="author-links">
+  <ul class="menu menu--nowrap menu--inline"><link itemprop="url" href="https://labzilla.io"><li title="Follow me on Twitter.">
+        <a class="button button--circle twitter-button" itemprop="sameAs" href="https://twitter.com/labzilla" target="_blank">
+          <div class="icon"><svg fill="#000000" width="24px" height="24px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M1024.032 194.432c-37.664 16.704-78.176 28-120.672 33.088 43.36-26.016 76.672-67.168 92.384-116.224-40.608 24.064-85.568 41.568-133.408 50.976-38.336-40.832-92.928-66.336-153.344-66.336-116.032 0-210.08 94.048-210.08 210.08 0 16.48 1.856 32.512 5.44 47.872-174.592-8.768-329.408-92.416-433.024-219.52-18.08 31.04-28.448 67.104-28.448 105.632 0 72.896 37.088 137.184 93.472 174.88-34.432-1.088-66.816-10.528-95.168-26.272-0.032 0.864-0.032 1.76-0.032 2.656 0 101.792 72.416 186.688 168.512 205.984-17.632 4.8-36.192 7.36-55.36 7.36-13.536 0-26.688-1.312-39.52-3.776 26.72 83.456 104.32 144.192 196.256 145.888-71.904 56.352-162.496 89.92-260.928 89.92-16.96 0-33.664-0.992-50.112-2.944 92.96 59.616 203.392 94.4 322.048 94.4 386.432 0 597.728-320.128 597.728-597.76 0-9.12-0.192-18.176-0.608-27.168 41.056-29.632 76.672-66.624 104.832-108.736z" />
+</svg>
+</div>
+        </a>
+      </li></ul>
+</div>
+</div>
+    </div><div class="site-info mt-2">
+      <div>© LabZilla 2020
+
+      </div>
+      
+    </div>
+  </div>
+</footer>
+</div></div>
+    </div><script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $body = $('body'), $window = $(window);
+    var $pageRoot = $('.js-page-root'), $pageMain = $('.js-page-main');
+    var activeCount = 0;
+    function modal(options) {
+      var $root = this, visible, onChange, hideWhenWindowScroll = false;
+      var scrollTop;
+      function setOptions(options) {
+        var _options = options || {};
+        visible = _options.initialVisible === undefined ? false : show;
+        onChange = _options.onChange;
+        hideWhenWindowScroll = _options.hideWhenWindowScroll;
+      }
+      function init() {
+        setState(visible);
+      }
+      function setState(isShow) {
+        if (isShow === visible) {
+          return;
+        }
+        visible = isShow;
+        if (visible) {
+          activeCount++;
+          scrollTop = $(window).scrollTop() || $pageMain.scrollTop();
+          $root.addClass('modal--show');
+          $pageMain.scrollTop(scrollTop);
+          activeCount === 1 && ($pageRoot.addClass('show-modal'), $body.addClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.on('scroll', hide);
+          $window.on('keyup', handleKeyup);
+        } else {
+          activeCount > 0 && activeCount--;
+          $root.removeClass('modal--show');
+          $window.scrollTop(scrollTop);
+          activeCount === 0 && ($pageRoot.removeClass('show-modal'), $body.removeClass('of-hidden'));
+          hideWhenWindowScroll && window.hasEvent('touchstart') && $window.off('scroll', hide);
+          $window.off('keyup', handleKeyup);
+        }
+        onChange && onChange(visible);
+      }
+      function show() {
+        setState(true);
+      }
+      function hide() {
+        setState(false);
+      }
+      function handleKeyup(e) {
+        // Char Code: 27  ESC
+        if (e.which ===  27) {
+          hide();
+        }
+      }
+      setOptions(options);
+      init();
+      return {
+        show: show,
+        hide: hide,
+        $el: $root
+      };
+    }
+    $.fn.modal = modal;
+  });
+})();
+</script><div class="modal modal--overflow page__search-modal d-print-none js-page-search-modal"><script>
+(function () {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    // search panel
+    var search = (window.search || (window.search = {}));
+    var useDefaultSearchBox = window.useDefaultSearchBox === undefined ?
+      true : window.useDefaultSearchBox ;
+
+    var $searchModal = $('.js-page-search-modal');
+    var $searchToggle = $('.js-search-toggle');
+    var searchModal = $searchModal.modal({ onChange: handleModalChange, hideWhenWindowScroll: true });
+    var modalVisible = false;
+    search.searchModal = searchModal;
+
+    var $searchBox = null;
+    var $searchInput = null;
+    var $searchClear = null;
+
+    function getModalVisible() {
+      return modalVisible;
+    }
+    search.getModalVisible = getModalVisible;
+
+    function handleModalChange(visible) {
+      modalVisible = visible;
+      if (visible) {
+        search.onShow && search.onShow();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].focus();
+      } else {
+        search.onShow && search.onHide();
+        useDefaultSearchBox && $searchInput[0] && $searchInput[0].blur();
+        setTimeout(function() {
+          useDefaultSearchBox && ($searchInput.val(''), $searchBox.removeClass('not-empty'));
+          search.clear && search.clear();
+          window.pageAsideAffix && window.pageAsideAffix.refresh();
+        }, 400);
+      }
+    }
+
+    $searchToggle.on('click', function() {
+      modalVisible ? searchModal.hide() : searchModal.show();
+    });
+    // Char Code: 83  S, 191 /
+    $(window).on('keyup', function(e) {
+      if (!modalVisible && !window.isFormElement(e.target || e.srcElement) && (e.which === 83 || e.which === 191)) {
+        modalVisible || searchModal.show();
+      }
+    });
+
+    if (useDefaultSearchBox) {
+      $searchBox = $('.js-search-box');
+      $searchInput = $searchBox.children('input');
+      $searchClear = $searchBox.children('.js-icon-clear');
+      search.getSearchInput = function() {
+        return $searchInput.get(0);
+      };
+      search.getVal = function() {
+        return $searchInput.val();
+      };
+      search.setVal = function(val) {
+        $searchInput.val(val);
+      };
+
+      $searchInput.on('focus', function() {
+        $(this).addClass('focus');
+      });
+      $searchInput.on('blur', function() {
+        $(this).removeClass('focus');
+      });
+      $searchInput.on('input', window.throttle(function() {
+        var val = $(this).val();
+        if (val === '' || typeof val !== 'string') {
+          search.clear && search.clear();
+        } else {
+          $searchBox.addClass('not-empty');
+          search.onInputNotEmpty && search.onInputNotEmpty(val);
+        }
+      }, 400));
+      $searchClear.on('click', function() {
+        $searchInput.val(''); $searchBox.removeClass('not-empty');
+        search.clear && search.clear();
+      });
+    }
+  });
+})();
+</script><div class="search search--dark">
+  <div class="main">
+    <div class="search__header">Search</div>
+    <div class="search-bar">
+      <div class="search-box js-search-box">
+        <div class="search-box__icon-search"><i class="fas fa-search"></i></div>
+        <input type="text" />
+        <div class="search-box__icon-clear js-icon-clear">
+          <a><i class="fas fa-times"></i></a>
+        </div>
+      </div>
+      <button class="button button--theme-dark button--pill search__cancel js-search-toggle">
+        Cancel</button>
+    </div>
+    <div class="search-result js-search-result"></div>
+  </div>
+</div>
+<script>var SOURCES = window.TEXT_VARIABLES.sources;
+var PAHTS = window.TEXT_VARIABLES.paths;
+window.Lazyload.js([SOURCES.jquery, PAHTS.search_js], function() {
+  var search = (window.search || (window.search = {}));
+  var searchData = window.TEXT_SEARCH_DATA || {};
+
+  function memorize(f) {
+    var cache = {};
+    return function () {
+      var key = Array.prototype.join.call(arguments, ',');
+      if (key in cache) return cache[key];
+      else return cache[key] = f.apply(this, arguments);
+    };
+  }
+
+  /// search
+  function searchByQuery(query) {
+    var i, j, key, keys, cur, _title, result = {};
+    keys = Object.keys(searchData);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      for (j = 0; j < searchData[key].length; j++) {
+        cur = searchData[key][j], _title = cur.title;
+        if ((result[key] === undefined || result[key] && result[key].length < 4 )
+          && _title.toLowerCase().indexOf(query.toLowerCase()) >= 0) {
+          if (result[key] === undefined) {
+            result[key] = [];
+          }
+          result[key].push(cur);
+        }
+      }
+    }
+    return result;
+  }
+
+  var renderHeader = memorize(function(header) {
+    return $('<p class="search-result__header">' + header + '</p>');
+  });
+
+  var renderItem = function(index, title, url) {
+    return $('<li class="search-result__item" data-index="' + index + '"><a class="button" href="' + url + '">' + title + '</a></li>');
+  };
+
+  function render(data) {
+    if (!data) { return null; }
+    var $root = $('<ul></ul>'), i, j, key, keys, cur, itemIndex = 0;
+    keys = Object.keys(data);
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      $root.append(renderHeader(key));
+      for (j = 0; j < data[key].length; j++) {
+        cur = data[key][j];
+        $root.append(renderItem(itemIndex++, cur.title, cur.url));
+      }
+    }
+    return $root;
+  }
+
+  // search box
+  var $result = $('.js-search-result'), $resultItems;
+  var lastActiveIndex, activeIndex;
+
+  function clear() {
+    $result.html(null);
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+  }
+  function onInputNotEmpty(val) {
+    $result.html(render(searchByQuery(val)));
+    $resultItems = $('.search-result__item'); activeIndex = 0;
+    $resultItems.eq(0).addClass('active');
+  }
+
+  search.clear = clear;
+  search.onInputNotEmpty = onInputNotEmpty;
+
+  function updateResultItems() {
+    lastActiveIndex >= 0 && $resultItems.eq(lastActiveIndex).removeClass('active');
+    activeIndex >= 0 && $resultItems.eq(activeIndex).addClass('active');
+  }
+
+  function moveActiveIndex(direction) {
+    var itemsCount = $resultItems ? $resultItems.length : 0;
+    if (itemsCount > 1) {
+      lastActiveIndex = activeIndex;
+      if (direction === 'up') {
+        activeIndex = (activeIndex - 1 + itemsCount) % itemsCount;
+      } else if (direction === 'down') {
+        activeIndex = (activeIndex + 1 + itemsCount) % itemsCount;
+      }
+      updateResultItems();
+    }
+  }
+
+  // Char Code: 13  Enter, 37  ⬅, 38  ⬆, 39  ➡, 40  ⬇
+  $(window).on('keyup', function(e) {
+    var modalVisible = search.getModalVisible && search.getModalVisible();
+    if (modalVisible) {
+      if (e.which === 38) {
+        modalVisible && moveActiveIndex('up');
+      } else if (e.which === 40) {
+        modalVisible && moveActiveIndex('down');
+      } else if (e.which === 13) {
+        modalVisible && $resultItems && activeIndex >= 0 && $resultItems.eq(activeIndex).children('a')[0].click();
+      }
+    }
+  });
+
+  $result.on('mouseover', '.search-result__item > a', function() {
+    var itemIndex = $(this).parent().data('index');
+    itemIndex >= 0 && (lastActiveIndex = activeIndex, activeIndex = itemIndex, updateResultItems());
+  });
+});
+</script>
+</div></div>
+
+
+<script>(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function scrollToAnchor(anchor, duration, callback) {
+      var $root = this;
+      $root.animate({ scrollTop: $(anchor).position().top }, duration, function() {
+        window.history.replaceState(null, '', window.location.href.split('#')[0] + anchor);
+        callback && callback();
+      });
+    }
+    $.fn.scrollToAnchor = scrollToAnchor;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function affix(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroll,
+        offsetBottom = 0, scrollTarget = window, scroll = window.document, disabled = false, isOverallScroller = true,
+        rootTop, rootLeft, rootHeight, scrollBottom, rootBottomTop,
+        hasInit = false, curState;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.offsetBottom && (offsetBottom = _options.offsetBottom);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroll && (scroll = _options.scroll);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $scrollTarget = $(scrollTarget);
+        isOverallScroller = window.isOverallScroller($scrollTarget[0]);
+        $scroll = $(scroll);
+      }
+      function preCalc() {
+        top();
+        rootHeight = $root.outerHeight();
+        rootTop = $root.offset().top + (isOverallScroller ? 0 :  $scrollTarget.scrollTop());
+        rootLeft = $root.offset().left;
+      }
+      function calc(needPreCalc) {
+        needPreCalc && preCalc();
+        scrollBottom = $scroll.outerHeight() - offsetBottom - rootHeight;
+        rootBottomTop = scrollBottom - rootTop;
+      }
+      function top() {
+        if (curState !== 'top') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: 0
+          });
+          curState = 'top';
+        }
+      }
+      function fixed() {
+        if (curState !== 'fixed') {
+          $root.addClass('fixed').css({
+            left: rootLeft + 'px',
+            top: 0
+          });
+          curState = 'fixed';
+        }
+      }
+      function bottom() {
+        if (curState !== 'bottom') {
+          $root.removeClass('fixed').css({
+            left: 0,
+            top: rootBottomTop + 'px'
+          });
+          curState = 'bottom';
+        }
+      }
+      function setState() {
+        var scrollTop = $scrollTarget.scrollTop();
+        if (scrollTop >= rootTop && scrollTop <= scrollBottom) {
+          fixed();
+        } else if (scrollTop < rootTop) {
+          top();
+        } else {
+          bottom();
+        }
+      }
+      function init() {
+        if(!hasInit) {
+          var interval, timeout;
+          calc(true); setState();
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState();
+          });
+          $window.on('resize', function() {
+            disabled || (calc(true), setState());
+          });
+          hasInit = true;
+        }
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions,
+        refresh: function() {
+          calc(true, { animation: false }); setState();
+        }
+      };
+    }
+    $.fn.affix = affix;
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    function toc(options) {
+      var $root = this, $window = $(window), $scrollTarget, $scroller, $tocUl = $('<ul class="toc toc--ellipsis"></ul>'), $tocLi, $headings, $activeLast, $activeCur,
+        selectors = 'h1,h2,h3', container = 'body', scrollTarget = window, scroller = 'html, body', disabled = false,
+        headingsPos, scrolling = false, hasRendered = false, hasInit = false;
+
+      function setOptions(options) {
+        var _options = options || {};
+        _options.selectors && (selectors = _options.selectors);
+        _options.container && (container = _options.container);
+        _options.scrollTarget && (scrollTarget = _options.scrollTarget);
+        _options.scroller && (scroller = _options.scroller);
+        _options.disabled !== undefined && (disabled = _options.disabled);
+        $headings = $(container).find(selectors).filter('[id]');
+        $scrollTarget = $(scrollTarget);
+        $scroller = $(scroller);
+      }
+      function calc() {
+        headingsPos = [];
+        $headings.each(function() {
+          headingsPos.push(Math.floor($(this).position().top));
+        });
+      }
+      function setState(element, disabled) {
+        var scrollTop = $scrollTarget.scrollTop(), i;
+        if (disabled || !headingsPos || headingsPos.length < 1) { return; }
+        if (element) {
+          $activeCur = element;
+        } else {
+          for (i = 0; i < headingsPos.length; i++) {
+            if (scrollTop >= headingsPos[i]) {
+              $activeCur = $tocLi.eq(i);
+            } else {
+              $activeCur || ($activeCur = $tocLi.eq(i));
+              break;
+            }
+          }
+        }
+        $activeLast && $activeLast.removeClass('active');
+        ($activeLast = $activeCur).addClass('active');
+      }
+      function render() {
+        if(!hasRendered) {
+          $root.append($tocUl);
+          $headings.each(function() {
+            var $this = $(this);
+            $tocUl.append($('<li></li>').addClass('toc-' + $this.prop('tagName').toLowerCase())
+              .append($('<a></a>').text($this.text()).attr('href', '#' + $this.prop('id'))));
+          });
+          $tocLi = $tocUl.children('li');
+          $tocUl.on('click', 'a', function(e) {
+            e.preventDefault();
+            var $this = $(this);
+            scrolling = true;
+            setState($this.parent());
+            $scroller.scrollToAnchor($this.attr('href'), 400, function() {
+              scrolling = false;
+            });
+          });
+        }
+        hasRendered = true;
+      }
+      function init() {
+        var interval, timeout;
+        if(!hasInit) {
+          render(); calc(); setState(null, scrolling);
+          // run calc every 100 millisecond
+          interval = setInterval(function() {
+            calc();
+          }, 100);
+          timeout = setTimeout(function() {
+            clearInterval(interval);
+          }, 45000);
+          window.pageLoad.then(function() {
+            setTimeout(function() {
+              clearInterval(interval);
+              clearTimeout(timeout);
+            }, 3000);
+          });
+          $scrollTarget.on('scroll', function() {
+            disabled || setState(null, scrolling);
+          });
+          $window.on('resize', window.throttle(function() {
+            if (!disabled) {
+              render(); calc(); setState(null, scrolling);
+            }
+          }, 100));
+        }
+        hasInit = true;
+      }
+
+      setOptions(options);
+      if (!disabled) {
+        init();
+      }
+      $window.on('resize', window.throttle(function() {
+        init();
+      }, 200));
+      return {
+        setOptions: setOptions
+      };
+    }
+    $.fn.toc = toc;
+  });
+})();
+/*(function () {
+
+})();*/
+</script><script>
+  /* toc must before affix, since affix need to konw toc' height. */(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  var TOC_SELECTOR = window.TEXT_VARIABLES.site.toc.selectors;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window);
+    var $articleContent = $('.js-article-content');
+    var $tocRoot = $('.js-toc-root'), $col2 = $('.js-col-aside');
+    var toc;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+    var hasToc = $articleContent.find(TOC_SELECTOR).length > 0;
+
+    function disabled() {
+      return $col2.css('display') === 'none' || !hasToc;
+    }
+
+    tocDisabled = disabled();
+
+    toc = $tocRoot.toc({
+      selectors: TOC_SELECTOR,
+      container: $articleContent,
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      tocDisabled = disabled();
+      toc && toc.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+  });
+})();
+(function() {
+  var SOURCES = window.TEXT_VARIABLES.sources;
+  window.Lazyload.js(SOURCES.jquery, function() {
+    var $window = $(window), $pageFooter = $('.js-page-footer');
+    var $pageAside = $('.js-page-aside');
+    var affix;
+    var tocDisabled = false;
+    var hasSidebar = $('.js-page-root').hasClass('layout--page--sidebar');
+
+    affix = $pageAside.affix({
+      offsetBottom: $pageFooter.outerHeight(),
+      scrollTarget: hasSidebar ? '.js-page-main' : null,
+      scroller: hasSidebar ? '.js-page-main' : null,
+      scroll: hasSidebar ? $('.js-page-main').children() : null,
+      disabled: tocDisabled
+    });
+
+    $window.on('resize', window.throttle(function() {
+      affix && affix.setOptions({
+        disabled: tocDisabled
+      });
+    }, 100));
+
+    window.pageAsideAffix = affix;
+  });
+})();
+</script>
+    </div>
+    <script>(function () {
+  var $root = document.getElementsByClassName('root')[0];
+  if (window.hasEvent('touchstart')) {
+    $root.dataset.isTouch = true;
+    document.addEventListener('touchstart', function(){}, false);
+  }
+})();
+</script>
+  </body>
+</html>
+
