@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="en">
   <head><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><title>macOS Jumpcloud LDAP Configuration - LabZilla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><title>Samsung TV Stops Automatically Connecting to Samsung Bluetooth Soundbar - LabZilla</title>
 
-<meta name="description" content="I’ve been toying with the idea of setting up a directory server to handle authentication across my entire network. However, setting up a LDAP or Active Direc...">
-<link rel="canonical" href="https://labzilla.io/blog/jumpcloud-ldap-bind"><link rel="alternate" type="application/rss+xml" title="LabZilla" href="/feed.xml"><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico">
+<meta name="description" content="I have a Samsung KU6300  series smart TV which I bought from Best Buy a few years ago, along with a Samsung MM55 soundbar that I picked up from Costco.The so...">
+<link rel="canonical" href="https://labzilla.io/blog/samsung-soundbar-bluetooth-issues"><link rel="alternate" type="application/rss+xml" title="LabZilla" href="/feed.xml"><!-- start favicons snippet, use https://realfavicongenerator.net/ --><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"><link rel="manifest" href="/assets/site.webmanifest"><link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="#fc4d50"><link rel="shortcut icon" href="/assets/favicon.ico">
 
 <meta name="msapplication-TileColor" content="#ffc40d"><meta name="msapplication-config" content="/assets/browserconfig.xml">
 
@@ -329,97 +329,34 @@
               <div class="col-main cell cell--auto"><!-- start custom main top snippet -->
 
 <!-- end custom main top snippet -->
-<article itemscope itemtype="http://schema.org/Article"><div class="article__header"><header><h1>macOS Jumpcloud LDAP Configuration</h1></header></div><meta itemprop="headline" content="macOS Jumpcloud LDAP Configuration"><div class="article__info clearfix"><ul class="left-col menu"><li>
+<article itemscope itemtype="http://schema.org/Article"><div class="article__header"><header><h1>Samsung TV Stops Automatically Connecting to Samsung Bluetooth Soundbar</h1></header></div><meta itemprop="headline" content="Samsung TV Stops Automatically Connecting to Samsung Bluetooth Soundbar"><div class="article__info clearfix"><ul class="left-col menu"><li>
               <a class="button button--secondary button--pill button--sm"
-                href="/archive.html?tag=mac">mac</a>
+                href="/archive.html?tag=samsung">samsung</a>
             </li><li>
               <a class="button button--secondary button--pill button--sm"
-                href="/archive.html?tag=jumpcloud">jumpcloud</a>
-            </li><li>
-              <a class="button button--secondary button--pill button--sm"
-                href="/archive.html?tag=ldap">ldap</a>
-            </li></ul><ul class="right-col menu"><li><i class="far fa-calendar-alt"></i> <span>Jan 21, 2021</span>
-            </li></ul></div><meta itemprop="author" content="LabZilla"/><meta itemprop="datePublished" content="2021-01-21T00:00:00-06:00">
-    <meta itemprop="keywords" content="mac,jumpcloud,ldap"><div class="js-article-content"><div class="layout--article"><!-- start custom article top snippet -->
+                href="/archive.html?tag=tv">tv</a>
+            </li></ul><ul class="right-col menu"><li><i class="far fa-calendar-alt"></i> <span>Jan 31, 2021</span>
+            </li></ul></div><meta itemprop="author" content="LabZilla"/><meta itemprop="datePublished" content="2021-01-31T00:00:00-06:00">
+    <meta itemprop="keywords" content="samsung,tv"><div class="js-article-content"><div class="layout--article"><!-- start custom article top snippet -->
 
 <!-- end custom article top snippet -->
-<div class="article__content" itemprop="articleBody"><p>I’ve been toying with the idea of setting up a directory server to handle authentication across my entire network. However, setting up a LDAP or Active Directory server comes with it’s own challenges around ensuring availablility, backups, etc. I have a somewhat complex network - three different sites, and multiple off-site users connecting via VPN - and the directory server would need to be available 24x7x365. I don’t really want to deal with the hassle, so I’m testing out a “directory-as-a-service provider” called <a href="https://jumpcloud.com">Jumpcloud</a>.</p>
+<div class="article__content" itemprop="articleBody"><p>I have a <a href="https://www.samsung.com/us/support/owners/product/2016-uhd-smart-tv-ku6300">Samsung KU6300</a>  series smart TV which I bought from Best Buy a few years ago, along with a <a href="https://www.samsung.com/us/support/owners/product/2017-soundbar-w-wireless-subwoofer-hw-mm55">Samsung MM55</a> soundbar that I picked up from Costco.</p>
 
-<p>Jumpcloud is free for up to 10 users, and offers a cloud LDAP service that is completely hands-off. They even have a desktop agent that allows Jumpcloud to manage local user accounts - seamlessly syncing them up to Jumpcloud’s directory.</p>
+<p>The soundbar pairs with the TV via bluetooth, and automatically turns on with the television. The only connection to the soundbar is for power - I do not use HDMI ARC, optical input, etc. This works fantastically well with no noticeable lag/delay - until it doesn’t.</p>
 
-<p>However, macOS supports LDAP natively, so I was curious if it was possible to skip using Jumpcloud’s agent and configure macOS to authenticate directly to Jumpcloud’s LDAP servers.</p>
+<p>Every few months, the soundbar will still paired, but will refuse to turn on with the TV and connect. I have to manually turn the soundbar on, and then manually switch the TV sound output to the soundbar.</p>
 
-<p class="error">This is not a supported configuration, only a proof of concept. Use the Jumpcloud agent in any production environment.</p>
+<p>Here’s how to get it working again:</p>
 
-<h1 id="create-your-account-in-jumpcloud">Create your account in Jumpcloud</h1>
-
-<p>Sign up for Jumpcloud, and <a href="https://support.jumpcloud.com/support/s/article/using-jumpclouds-ldap-as-a-service1">create an account in your Jumpcloud directory</a>. Make sure that under permission settings, <em>Enable as LDAP Bind DN</em> is selected.</p>
-
-<p>Find your Organization ID under the Settings tab, and copy it down for later use.</p>
-
-<h1 id="configure-macos-ldap-settings">Configure macOS LDAP settings</h1>
-
-<p>Open up System Preferences, and click Users and Groups. Unlock the preferences pane, and then click on Login Options.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/systempreferences-loginoptions.png" alt="" /></p>
-
-<p>Click on the “Join” button next to Network Account Server. Click on the Open Directory Utility button in the bottom left.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/opendirectoryutility.png" alt="" /></p>
-
-<p>In the Directory Utility window, unlock the preferences pane. Select LDAPv3, and then click on the pencil icon in the bottom left.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/ldapv3.png" alt="" /></p>
-
-<p>Click on New, and enter <code class="language-plaintext highlighter-rouge">ldap.jumpcloud.com</code> for the server name. Check the SSL box, and then click Manual. Click Edit.</p>
-
-<p>Under the Search &amp; Mappings tab, choose RFC2307 from the dropdown at the top of the window (note that this will change to custom after we make changes). Enter in the following for search base suffix:<code class="language-plaintext highlighter-rouge">ou=Users,o=YOUR_ORG_ID,dc=jumpcloud,dc=com</code></p>
-
-<p>Note: Replace <code class="language-plaintext highlighter-rouge">YOUR_ORG_ID</code> with your organization ID, <a href="https://support.jumpcloud.com/support/s/article/Admin-Portal-General-Settings">which you can find in the Jumpcloud admin portal</a>.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/searchbasesuffix.png" alt="" /></p>
-
-<p>Under Record Types and Attributes, select “Users” and click + button on the left hand side.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/usersrecordtypes.png" alt="" /></p>
-
-<p>Select <em>GeneratedUID</em> and click OK.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/usersrecord-generateduid.png" alt="" /></p>
-
-<p>Ensure that GeneratedUID is selected in the left-side list, and then click on the plus icon on the right side. Enter <code class="language-plaintext highlighter-rouge">apple-generateduid</code> in the text box, and then press enter.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/users-generateduid-2.png" alt="" /></p>
-
-<p>In the list on the left-hand side, select the NFSHomeDirectory attribute. Modify the value for this attribute to <code class="language-plaintext highlighter-rouge">#/Users/$uid$</code></p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/users-nfshomedirectory.png" alt="" /></p>
-
-<p>Switch to the Security tab, and check the “Use Authentication When Connecting” box. Under Distinguished Name, enter <code class="language-plaintext highlighter-rouge">uid=username,ou=Users,o=YOUR_ORG_ID,dc=jumpcloud,dc=com</code>. Enter the account password, and click OK. Click OK again.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/securitytab.png" alt="" /></p>
-
-<p>Back in the Directory Utility window, click on Search Policy, and then click the plus icon in the bottom left. Select the Jumpcloud LDAP server, and then click Add. Click Apply, and then authenticate with your local system account to save the settings.</p>
-
-<p><img src="/assets/jumpcloud-ldap-bind/searchpolicy2.png" alt="" /></p>
-
-<p>You should now be able to log in using a Jumpcloud LDAP account.</p>
-
-<h1 id="caveats">Caveats</h1>
-
-<ul>
-  <li>
-    <p>LDAP accounts are not administrator accounts. You will need to manually grant yourself administrator rights after logging in.</p>
-  </li>
-  <li>
-    <p>If you don’t have a network connection (that can reach Jumpcloud’s LDAP servers), you won’t be able to log in to your Mac. You can <a href="https://support.apple.com/guide/mac-help/create-and-configure-mobile-accounts-mh32157/mac">manually create a mobile account</a> to allow you to authenticate off network.</p>
-  </li>
-</ul>
-
+<ol>
+  <li>Turn on the soundbar.</li>
+  <li>On the soundbar remote, press the source/input button until the soundbar display says <em>BT Ready</em>.</li>
+  <li>On the soundbar remote, press and hold the play/pause button for 5 seconds, until the soundbar display says <em>ON - TV Remote</em>.</li>
+</ol>
 </div>
   
 
-  <div class="d-print-none"><footer class="article__footer"><meta itemprop="dateModified" content="2021-01-21T00:00:00-06:00"><!-- start custom article footer snippet -->
+  <div class="d-print-none"><footer class="article__footer"><meta itemprop="dateModified" content="2021-01-31T00:00:00-06:00"><!-- start custom article footer snippet -->
 
 <!-- end custom article footer snippet -->
 <div class="article__subscribe"><div class="article__section-navigator clearfix">
@@ -441,7 +378,7 @@
         async>
 </script>
 <!-- end custom comments snippet --></footer>
-<div class="article__section-navigator clearfix"><div class="previous"><span>PREVIOUS</span><a href="/blog/2019-macbook-pro-gpu-issues">2019 MacBook Pro + Radeon 5500m Issues</a></div><div class="next"><span>NEXT</span><a href="/blog/samsung-soundbar-bluetooth-issues">Samsung TV Stops Automatically Connecting to Samsung Bluetooth Soundbar</a></div></div></div>
+<div class="article__section-navigator clearfix"><div class="previous"><span>PREVIOUS</span><a href="/blog/jumpcloud-ldap-bind">macOS Jumpcloud LDAP Configuration</a></div></div></div>
 
 </div>
 
