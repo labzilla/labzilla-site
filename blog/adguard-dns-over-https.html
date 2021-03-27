@@ -347,11 +347,11 @@
 
 <p>Previously, the only way around a cellular carrier’s hard-coded DNS settings was to use a VPN to tunnel your traffic - a massive hassle. VPN is tricky to set up correctly, can be somewhat flakey while using cellular data, and negatively impacts both device battery life and connection speed. DoH is a massive improvement.</p>
 
-<p>You don’t even need to run your own DoH server to take advantage of this new feature; there are plenty of public DoH servers and websites with <a href="https://encrypted-dns.party">pre-built configuration profiles</a>. However, if you value privacy and the ability to tweak exactly what blocklists are used, setting up your own DoH server is relatively painless.</p>
+<p>You don’t even need to run your own DoH server to take advantage of this new feature; there are plenty of public DoH servers and websites with <a href="https://encrypted-dns.party">pre-built configuration profiles</a>. However, if you value privacy and the ability to tweak exactly which blocklists are used, setting up your own DoH server is relatively painless.</p>
 
 <h1 id="instructions">Instructions</h1>
 
-<p>While I’ve previously used PiHole at home, it doesn’t include a DoH server out of the box. It’s possible to combine PiHole with <a href="https://facebookexperimental.github.io/doh-proxy/">DoH Proxy</a>, however it adds quite a bit of complexity.</p>
+<p>While I’ve previously <a href="/blog/force-dns-pihole">used PiHole at home</a>, it doesn’t include a DoH server out of the box. It’s possible to combine PiHole with <a href="https://facebookexperimental.github.io/doh-proxy/">DoH Proxy</a>, however it adds quite a bit of complexity.</p>
 
 <p>A much simpler solution is <a href="https://adguard.com/en/adguard-home/overview.html">AdGuard Home</a> - an open source ad-blocking DNS server that is functionally the same as PiHole when it comes to blocking ads. 
 In order to get this working, you will need to have:</p>
@@ -360,12 +360,12 @@ In order to get this working, you will need to have:</p>
   <li>Your own domain name, with the ability to configure a subdomain.</li>
   <li>A virtual private server to run Docker &amp; AdGuard Home on.
     <ul>
-      <li>If you’re using Digital Ocean the $5 base droplet is more than adequate.</li>
+      <li>For Digital Ocean, the $5 base droplet is more than adequate.</li>
     </ul>
   </li>
 </ul>
 
-<p>Any VPS provider should be more than adequate; I run a minimal VM on my colo server for this, but you could use AWS, Linode, Vultr, etc. If you’re a new Digital Ocean customer, feel free to use my <a href="https://m.do.co/c/8256b215eb23">referral link</a> to get a free $100 credit.</p>
+<p>Any VPS provider should be able to handle AdGuard Home. I spun up a virtual machine on my colo server, but AWS, Linode, Vultr, etc would all work just as well. If you’re a new Digital Ocean customer, feel free to use my <a href="https://m.do.co/c/8256b215eb23">referral link</a> to get a free $100 credit.</p>
 
 <p class="warning">For the purposes of this tutorial, I’m using the subdomain <code class="language-plaintext highlighter-rouge">dns.labzilla.io</code>.  You should replace this subdomain with your own in the instructions below.</p>
 
@@ -391,21 +391,21 @@ In order to get this working, you will need to have:</p>
 
 <p>We’re using LetsEncrypt + Certbot to automatically request an SSL certificate for our AdGuard Home server.</p>
 
-<p>SSH into your new virtual machine, and use the command <code class="language-plaintext highlighter-rouge">sudo apt-get install certbot</code> to install <a href="https://certbot.eff.org">Certbot</a>.</p>
+<p>SSH into your new virtual machine and use the command <code class="language-plaintext highlighter-rouge">sudo apt-get install certbot</code> to install <a href="https://certbot.eff.org">Certbot</a>.</p>
 
 <ul>
-  <li>Start Certbot with the command <code class="language-plaintext highlighter-rouge">certbot certonly</code>,  and when prompted choose option 1 (spin up a temporary webserver).</li>
+  <li>Start Certbot with the command <code class="language-plaintext highlighter-rouge">certbot certonly</code>.  When prompted, choose option 1 (spin up a temporary webserver).</li>
   <li>Follow the rest of the prompts to obtain your server’s SSL certificate. Be sure to use the full subdomain that you created.</li>
-  <li>When the process is finished, note the location of your certificate and key file (usually <code class="language-plaintext highlighter-rouge">/etc/letsencrypt/live/dns.labzilla.io/fullchain.pem</code> and <code class="language-plaintext highlighter-rouge">/etc/letsencrypt/live/dns.labzilla.io/privkey.pem</code>)</li>
+  <li>When the process is finished, note the location of your certificate and key file (usually <code class="language-plaintext highlighter-rouge">/etc/letsencrypt/live/dns.labzilla.io/fullchain.pem</code> and <code class="language-plaintext highlighter-rouge">/etc/letsencrypt/live/dns.labzilla.io/privkey.pem</code>) respectively.</li>
 </ul>
 
 <h2 id="install-docker">Install Docker</h2>
 
-<p>Docker is the easiest way to install AdGuard Home, and allows us to expose only the bare minimum ports necessary for Adguard to operate. Rather than re-invent the wheel, <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-18-04">follow this excellent tutorial</a> and come back when you’re finished.</p>
+<p>Docker is the easiest way to install AdGuard Home. It allows us to expose only the bare minimum ports necessary for AdGuard Home to operate. Rather than re-inventing the wheel, <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-18-04">follow this excellent tutorial</a> and come back when you’re finished.</p>
 
 <h2 id="enable-ipv6-support-in-docker">Enable IPv6 support in Docker</h2>
 
-<p>If you don’t have an IPv6 address, you can skip this step. Otherwise, if it doesn’t already exist, create a file at <code class="language-plaintext highlighter-rouge">etc/docker/daemon.json</code> and add the following:</p>
+<p>If you don’t have an IPv6 address, you can skip this step. Otherwise, if it doesn’t exist already, create a file at <code class="language-plaintext highlighter-rouge">/etc/docker/daemon.json</code> and add the following:</p>
 
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "ipv6": true,
@@ -413,7 +413,7 @@ In order to get this working, you will need to have:</p>
 }
 </code></pre></div></div>
 
-<p>Save and restart Docker by running <code class="language-plaintext highlighter-rouge">systemctl restart docker</code>.</p>
+<p>Save and close the file, and then restart Docker by running <code class="language-plaintext highlighter-rouge">systemctl restart docker</code>.</p>
 
 <h2 id="install-adguard-home">Install AdGuard Home</h2>
 <p>Now that Docker is installed, we can install Adguard Home:</p>
@@ -433,15 +433,15 @@ adguard/adguardhome
 <p>Be sure to modify the above commands to properly reference where your SSL certificate is stored.</p>
 
 <h2 id="configure-adguard-home">Configure AdGuard Home</h2>
-<p>Access your new AdGuard instance by navigating to <code class="language-plaintext highlighter-rouge">http://dns.labzilla.io:3000</code> in a browser. Follow the set up wizard to create a new account; don’t change anything from the default settings. After creating your new account, log in using the username and password you created.</p>
+<p>Access your new AdGuard instance by navigating to <code class="language-plaintext highlighter-rouge">http://dns.labzilla.io:3000</code> in a browser. Follow the setup wizard to create a new account; don’t change anything from the default settings. After creating your new account, log in using the username and password you created.</p>
 
 <h3 id="ssl-configuration">SSL Configuration</h3>
 
-<p>Now that AdGuard Home is running, we need to configure it to use the SSL certificate we requested from LetsEncrypt.</p>
+<p>Now that AdGuard Home is running, we need to configure it to use the SSL certificate we requested from Let’s Encrypt.</p>
 
 <ul>
   <li>
-    <p>Navigate to <em>Settings</em> &gt; <em>Encryption Settings</em>.</p>
+    <p>In the AdGuard Home admin panel, navigate to <em>Settings</em> &gt; <em>Encryption Settings</em>.</p>
   </li>
   <li>
     <p>Check the <em>Enable Encryption</em> box, and enter your server name (<code class="language-plaintext highlighter-rouge">dns.labzilla.io</code>). Check the <em>Redirect to HTTPS automatically</em> box.</p>
@@ -471,12 +471,12 @@ adguard/adguardhome
 
 <h2 id="download-the-mobile-configuration-profile">Download the mobile configuration profile</h2>
 
-<p>DNS over HTTPS is not configurable from the in iOS/macOS settings/system preferences. Instead, a mobile configuration profile is used to configure your device. AdGuard Home automatically generates a valid configuration profile for your device with the appropriate settings.  AdGuard Home’s website is mobile friendly, so it’s actually easiest to complete this step right from your iOS device. Alternatively, you can download the mobile configuration profile on your macOS device, and use AirDrop to transfer it.</p>
+<p>DNS over HTTPS is not configurable from within iOS settings or macOS system preferences. Instead, a mobile configuration profile is used to configure your device. AdGuard Home automatically generates a valid configuration profile with the appropriate settings.  AdGuard Home’s website is mobile friendly, so it’s actually easiest to complete this step right from your iOS device. Alternatively, you can download the mobile configuration profile on your macOS device, and use AirDrop to transfer it.</p>
 
 <ul>
   <li>In the AdGuard admin panel, tap <em>Setup Guide</em>, and then tap <em>DNS Privacy</em>.
     <ul>
-      <li>If you’re on a mobile device, you may need to swipe left on the section with the icons for Router, Windows, macOS, etc to see the DNS Privacy Option.</li>
+      <li>If you’re on a mobile device, you may need to swipe left on the section with the icons for Router, Windows, macOS, etc. to see the DNS Privacy Option.</li>
     </ul>
   </li>
 </ul>
@@ -497,7 +497,7 @@ adguard/adguardhome
 
 <p><img src="/assets/adguard-dns-setupguide3.png" alt="" /></p>
 
-<p>To verify the DNS settings were correctly applied, open Settings and tap <em>VPN &amp; Network</em>. A new section for DNS should be at the bottom of the window. Reverting the setting to Automatic will switch you back to your cellular provider’s DNS server.  You should also see DNS queries from your device reflected in the query log inside AdGuard Home.</p>
+<p>To verify the DNS settings were correctly applied, open Settings and tap <em>VPN &amp; Network</em>. A new section for DNS should be at the bottom of the window. Reverting the setting to <em>Automatic</em> will switch you back to your cellular provider’s DNS server.  You should also see DNS queries from your device reflected in the query log inside AdGuard Home.</p>
 
 <h2 id="recreate-docker-container">Recreate Docker container</h2>
 
@@ -537,15 +537,15 @@ adguard/adguardhome
 <p>If you need to completely remove the DoH configuration profile from your device, it’s relatively straightforward.</p>
 
 <ul>
-  <li><strong>iOS/iPadOS:</strong> Go to Settings &gt; General &gt; Profiles and Device Management. Locate the profile, and tap remove profile.</li>
-  <li><strong>macOS:</strong> System Preferences &gt; Profiles. Locate the profile, and click the minus icon to remove it.</li>
+  <li><strong>iOS/iPadOS:</strong> Go to <em>Settings</em> &gt; <em>General</em> &gt; <em>Profiles and Device Management</em>. Locate the profile, and tap <em>Remove Profile</em>.</li>
+  <li><strong>macOS:</strong> <em>System Preferences</em> &gt; <em>Profiles</em>. Locate the profile, and click the minus icon to remove it.</li>
 </ul>
 
 <h1 id="advanced-configuration">Advanced configuration</h1>
 
-<p>AdGuard Home generates a very basic mobile configuration profile that is used to enable DNS over HTTPS on iOS/macOS devices. The profile that is generated is always on, unless you manually turn it off by switching back to automatic DNS settings.</p>
+<p>AdGuard Home generates a very basic configuration profile that enables DNS over HTTPS on iOS/macOS devices. The profile that is generated is always on, unless you manually turn it off by switching back to automatic DNS settings.</p>
 
-<p>You don’t have to use the configuration profile that AdGuard Home generates - the DNS query string (<code class="language-plaintext highlighter-rouge">https://dns.labzilla.io/dns-query</code>) is the important part. You can <a href="https://neilzone.co.uk/2021/03/dns-over-https-on-macos-and-ios">create your own</a> configuration profile (or modify the one AdGuard Home generates) to create more complex rules. For example, the <a href="https://github.com/labzilla/mobileconfig-profiles/blob/main/dns-over-doh.mobileconfig">configuration profile</a> I currently use is set up to automatically switch back to the DNS server provided by my router’s DHCP server whenever I’m on my home network.</p>
+<p>You don’t have to use the configuration profile that AdGuard Home generates - the DNS query string (<code class="language-plaintext highlighter-rouge">https://dns.labzilla.io/dns-query</code>) is the important part. You can <a href="https://neilzone.co.uk/2021/03/dns-over-https-on-macos-and-ios">create your own</a> configuration profile (or modify the one AdGuard Home generates) to create more complex rules. For example, the <a href="https://github.com/labzilla/mobileconfig-profiles/blob/main/dns-over-doh.mobileconfig">configuration profile</a> I currently use is set up to automatically switch back to the DNS server provided by my router’s DHCP server when I’m on my home network.</p>
 
 </div>
   
