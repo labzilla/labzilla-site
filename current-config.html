@@ -352,6 +352,8 @@
 
 <p>I have hardware in my own house, at my parent’s house a few hours away, and in a colocation facility out of state.</p>
 
+<p class="info">The Amazon links below are affiliate links.</p>
+
 <h2 id="home">Home</h2>
 
 <h3 id="always-on-server">Always-on server</h3>
@@ -362,10 +364,11 @@
 
 <p><strong>Hardware</strong></p>
 
+<p>Dell OptiPlex 3060 Micro (<a href="https://amzn.to/3ujfe68">Amazon</a>)</p>
+
 <ul>
-  <li>Dell OptiPlex 3060 Micro</li>
-  <li>Intel i3-8100T</li>
-  <li>16GB RAM</li>
+  <li>i3-8100T</li>
+  <li>RAM</li>
   <li>256GB SSD</li>
 </ul>
 
@@ -375,7 +378,7 @@
   <li>Ubuntu 20.04 Server</li>
   <li>Docker
     <ul>
-      <li>Reverse Proxy</li>
+      <li>Nginx Reverse Proxy</li>
       <li>Home Assistant</li>
     </ul>
   </li>
@@ -385,7 +388,7 @@
 
 <p>My “sometimes-on” server is a Z620 that I purchased on Amazon from <a href="https://www.stalliontek.com">Stallion Technology.</a>. I can vouch for their customer service; my first Z620 had a motherboard fail after a month, and they replaced it quickly and with minimal fuss. I’ve had the replacement machine for about two years now, and I’ve had no further issues.</p>
 
-<p>The Z620 itself is a well built (and heavy) workstation. Everything is modular and no tools are needed - even removing the motherboard. It’s a pretty powerful machine, and less hassle than rack server for my small lab.</p>
+<p>The Z620 itself is a well built (and quite heavy) workstation. Everything is modular and no tools are needed - even removing the motherboard. It’s a pretty powerful machine, and less hassle than rack server for my small lab.</p>
 
 <p><strong>Hardware</strong></p>
 
@@ -427,7 +430,7 @@
 <p><strong>Hardware</strong></p>
 
 <ul>
-  <li><a href="https://www.synology.com/en-us/products/DS1618+">Synology DS1618+</a></li>
+  <li>Synology DS1618+ (since replaced by the <a href="https://amzn.to/3vCcvF2">DS1621+</a>)</li>
   <li>4x 10TB WD Drives</li>
   <li>10Gb NIC</li>
 </ul>
@@ -448,9 +451,9 @@
 <p><strong>Router</strong></p>
 
 <ul>
-  <li>PfSense (cheap fanless PC with Atom E3845, 4GB RAM, 64GB mSATA SSD)</li>
-  <li>Ubiquiti UniFi Switch - 8 port 60w POE</li>
-  <li>Ubiquiti nanoHD</li>
+  <li>Protectli Vault 4 Port (<a href="https://amzn.to/3tsHrq9">Amazon</a>)</li>
+  <li>Ubiquiti UniFi Switch - 8 port 60w POE (<a href="https://amzn.to/3eRt7Cd">Amazon</a>)</li>
+  <li>Ubiquiti nanoHD (<a href="https://amzn.to/3umfGkf">Amazon</a>)</li>
 </ul>
 
 <p><strong>PFSense services</strong></p>
@@ -506,23 +509,33 @@
 <p>My parents built a new house a few years ago, so we were able to get every room wired for ethernet and have all the drops ran to a central area. New electrical was ran to their existing outbuildings, and the builders buried about 200 feet of dedicated so we could run some network drops.</p>
 
 <ul>
-  <li>Ubiquiti NanoBeams (x2)
+  <li>Ubiquiti NanoStation Loco M5 (<a href="https://amzn.to/2PNv4XE">Amazon</a>)
     <ul>
       <li>Their house is somewhat remote; the only option available was DSL (or satellite). The phone company wanted close to $10K in order to run a new line a few thousand feet across the property, but was willing to run 150 feet of phone line for free. You can guess which option they picked.</li>
-      <li>Their DSL modem lives outside in a weatherproof box, with the NanoBeam attached to a pole. There’s another NanoBeam on the side of the house to receive the signal.</li>
+      <li>Their DSL modem lives outside in a weatherproof box, with the NanoStation attached to a pole. There’s another NanoStation on the side of the house to receive the signal.</li>
     </ul>
   </li>
-  <li>Netgear LB2120 LTE Modem (secondary ISP)
+  <li>Netgear Nighthawk MR1100 LTE Modem (<a href="https://amzn.to/3tsIQgp">Amazon</a>)
     <ul>
       <li>The DSL service itself seems to have hours-long outages once or twice a month. Given the remoteness of the property, their age, etc, having a failover Internet option to keep their home phone and alarm system online is worth the small monthly cost.</li>
       <li>This also functions as “out of band” access to their internal network if needed.</li>
     </ul>
   </li>
-  <li>Sophos XG (same hardware as mine)</li>
-  <li>Buffalo 24 port POE switch</li>
-  <li>Ubiquiti ToughSwitch 8-PRO (outbuilding)</li>
-  <li>Various Ubiquiti APs to cover house, outbuilding, and yard.</li>
-  <li>Synology NAS (Time Machine server - 2x 3TB drives that are mirrored)</li>
+  <li>Sophos XG (same Protectli hardware as above)  (<a href="https://amzn.to/3tsHrq9">Amazon</a>)</li>
+  <li>Buffalo 24 port POE switch (<a href="https://amzn.to/33edCi2">Amazon</a>)</li>
+  <li>Ubiquiti Edgeswitch 8 150W (<a href="https://amzn.to/2SqBnS6">Amazon</a>)</li>
+  <li>Ubiquiti UniFi APs:
+    <ul>
+      <li>UAP-AC-Pro inside the house (<a href="https://amzn.to/3eYtoU1">Amazon</a>)</li>
+      <li>UAP-AC-Mesh to cover the barn (<a href="https://amzn.to/3h6JH3B">Amazon</a>)</li>
+      <li>UAP-AC-IW to cover an outbuilding (<a href="https://amzn.to/3ek4eQt">Amazon</a>)</li>
+    </ul>
+  </li>
+  <li>Synology NAS (<a href="https://amzn.to/3tqg0NG">Amazon</a>)
+    <ul>
+      <li>2x 3TB WD Red Drives (<a href="https://amzn.to/33dm4hG">Amazon</a>)</li>
+    </ul>
+  </li>
 </ul>
 
 <h3 id="nvrip-camera-system">NVR/IP Camera System</h3>
@@ -533,7 +546,16 @@
   <li>HP ProLiant ML10v2 (i3-4150, 8GB RAM, 10TB mirrored drives)</li>
   <li>Windows Server</li>
   <li>Milestone XProtect Essential+</li>
-  <li>8x HikVision IP cameras</li>
+  <li>HikVision IP cameras, including:
+    <ul>
+      <li>DS-2CD2342WD-I (<a href="https://amzn.to/2PNxRA6">Amazon</a>)
+        <ul>
+          <li>I highly recommend the “turret” stye cameras over the domes.</li>
+        </ul>
+      </li>
+      <li>DS-2CD2542FWD-IS (<a href="https://amzn.to/2RnVmAq">Amazon</a>)</li>
+    </ul>
+  </li>
   <li>Raspberry Pi running <a href="https://github.com/Anonymousdog/displaycameras">displaycameras</a>  to power a small monitor displaying the live feeds.</li>
 </ul>
 
@@ -550,15 +572,7 @@
   <div class="d-print-none"><footer class="article__footer"><!-- start custom article footer snippet -->
 
 <!-- end custom article footer snippet -->
-<!-- start custom comments snippet -->
-<script src="https://utteranc.es/client.js"
-        repo="jdervish/labzilla-comments"
-        issue-term="pathname"
-        theme="boxy-light"
-        crossorigin="anonymous"
-        async>
-</script>
-<!-- end custom comments snippet --></footer>
+</footer>
 </div>
 
 </div>
@@ -588,7 +602,15 @@
   });
 })();
 </script>
-</div><section class="page__comments d-print-none"></section></article><!-- start custom main bottom snippet -->
+</div><section class="page__comments d-print-none"><!-- start custom comments snippet from /_includes/comments-providers/custom.html -->
+<script src="https://utteranc.es/client.js"
+        repo="labzilla/labzilla-comments"
+        issue-term="pathname"
+        theme="boxy-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section></article><!-- start custom main bottom snippet -->
 
 <!-- end custom main bottom snippet -->
 </div>
